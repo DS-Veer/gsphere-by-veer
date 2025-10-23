@@ -40,11 +40,11 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button variant="hero" size="xl" className="gap-2">
+            <Button variant="hero" size="xl" className="gap-2" onClick={() => window.location.href = "/dashboard"}>
               <Upload className="w-5 h-5" />
               Upload Newspaper
             </Button>
-            <Button variant="outline" size="xl" className="gap-2">
+            <Button variant="outline" size="xl" className="gap-2" onClick={() => window.location.href = "/dashboard"}>
               <BarChart className="w-5 h-5" />
               View Dashboard
             </Button>

@@ -14,7 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      articles: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          facts: string | null
+          gs_paper: Database["public"]["Enums"]["gs_paper"] | null
+          id: string
+          is_important: boolean | null
+          is_revised: boolean | null
+          issues: string | null
+          keywords: Json | null
+          newspaper_id: string
+          static_topics: string[] | null
+          summary: string | null
+          syllabus_topic: string | null
+          title: string
+          updated_at: string | null
+          way_forward: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          facts?: string | null
+          gs_paper?: Database["public"]["Enums"]["gs_paper"] | null
+          id?: string
+          is_important?: boolean | null
+          is_revised?: boolean | null
+          issues?: string | null
+          keywords?: Json | null
+          newspaper_id: string
+          static_topics?: string[] | null
+          summary?: string | null
+          syllabus_topic?: string | null
+          title: string
+          updated_at?: string | null
+          way_forward?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          facts?: string | null
+          gs_paper?: Database["public"]["Enums"]["gs_paper"] | null
+          id?: string
+          is_important?: boolean | null
+          is_revised?: boolean | null
+          issues?: string | null
+          keywords?: Json | null
+          newspaper_id?: string
+          static_topics?: string[] | null
+          summary?: string | null
+          syllabus_topic?: string | null
+          title?: string
+          updated_at?: string | null
+          way_forward?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_newspaper_id_fkey"
+            columns: ["newspaper_id"]
+            isOneToOne: false
+            referencedRelation: "newspapers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newspapers: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          status: Database["public"]["Enums"]["newspaper_status"] | null
+          updated_at: string | null
+          upload_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          status?: Database["public"]["Enums"]["newspaper_status"] | null
+          updated_at?: string | null
+          upload_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          status?: Database["public"]["Enums"]["newspaper_status"] | null
+          updated_at?: string | null
+          upload_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newspapers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +158,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      gs_paper: "GS1" | "GS2" | "GS3" | "GS4"
+      newspaper_status: "uploaded" | "processing" | "completed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +286,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      gs_paper: ["GS1", "GS2", "GS3", "GS4"],
+      newspaper_status: ["uploaded", "processing", "completed", "failed"],
+    },
   },
 } as const

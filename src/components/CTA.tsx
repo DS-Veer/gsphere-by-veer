@@ -34,6 +34,7 @@ const CTA = () => {
             <Button 
               size="xl" 
               className="bg-accent-foreground text-primary hover:bg-accent-foreground/90 gap-2 shadow-strong"
+              onClick={() => window.location.href = "/auth"}
             >
               Get Started Free
               <ArrowRight className="w-5 h-5" />
