@@ -21,6 +21,8 @@ const ProgressTracking = () => {
     revisedArticles: 0,
     uploadedThisMonth: 0,
   });
+  const [topicsAllTime, setTopicsAllTime] = useState<{ topic: string; count: number }[]>([]);
+  const [topicsThisMonth, setTopicsThisMonth] = useState<{ topic: string; count: number }[]>([]);
 
   useEffect(() => {
     loadProgressData();
@@ -60,6 +62,37 @@ const ProgressTracking = () => {
         const uploadDate = new Date(n.upload_date);
         return uploadDate >= monthStart && uploadDate <= monthEnd;
       }).length || 0;
+
+      // Calculate topic frequencies
+      const topicCountsAll: Record<string, number> = {};
+      const topicCountsMonth: Record<string, number> = {};
+
+      articlesData?.forEach((article) => {
+        const topics = article.static_topics || [];
+        const articleDate = new Date(article.created_at);
+        const isThisMonth = articleDate >= monthStart && articleDate <= monthEnd;
+
+        topics.forEach((topic: string) => {
+          topicCountsAll[topic] = (topicCountsAll[topic] || 0) + 1;
+          if (isThisMonth) {
+            topicCountsMonth[topic] = (topicCountsMonth[topic] || 0) + 1;
+          }
+        });
+      });
+
+      // Convert to sorted arrays
+      const sortedTopicsAll = Object.entries(topicCountsAll)
+        .map(([topic, count]) => ({ topic, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      const sortedTopicsMonth = Object.entries(topicCountsMonth)
+        .map(([topic, count]) => ({ topic, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      setTopicsAllTime(sortedTopicsAll);
+      setTopicsThisMonth(sortedTopicsMonth);
 
       setStats({
         totalNewspapers: newspapersData?.length || 0,
@@ -164,6 +197,60 @@ const ProgressTracking = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Most Cited Topics - All Time */}
+          <Card className="shadow-medium">
+            <CardHeader>
+              <CardTitle>Most Cited Topics (All Time)</CardTitle>
+              <CardDescription>Topics appearing most frequently in your articles</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {topicsAllTime.length > 0 ? (
+                <div className="space-y-3">
+                  {topicsAllTime.map((item, index) => (
+                    <div key={item.topic} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="w-8 h-8 flex items-center justify-center">
+                          {index + 1}
+                        </Badge>
+                        <span className="font-medium">{item.topic}</span>
+                      </div>
+                      <Badge>{item.count} articles</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No topics analyzed yet</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Most Cited Topics - This Month */}
+          <Card className="shadow-medium">
+            <CardHeader>
+              <CardTitle>Most Cited Topics (This Month)</CardTitle>
+              <CardDescription>Topics trending in your current month's articles</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {topicsThisMonth.length > 0 ? (
+                <div className="space-y-3">
+                  {topicsThisMonth.map((item, index) => (
+                    <div key={item.topic} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="w-8 h-8 flex items-center justify-center">
+                          {index + 1}
+                        </Badge>
+                        <span className="font-medium">{item.topic}</span>
+                      </div>
+                      <Badge>{item.count} articles</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No topics analyzed this month</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Monthly Progress */}
           <Card className="shadow-medium">
