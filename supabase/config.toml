@@ -1,1 +1,4 @@
 project_id = "kanzzugutamqvtddqknj"
+
+[functions.process-newspaper]
+verify_jwt = false

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Trash2, Loader2, Play } from "lucide-react";
+import { FileText, Trash2, Loader2, Brain } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -100,6 +100,37 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
     }
   };
 
+  const handleProcess = async (newspaper: Newspaper) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke('process-newspaper', {
+        body: { newspaperId: newspaper.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Processing started",
+        description: "Your newspaper is being analyzed. This may take a few minutes.",
+      });
+
+      // Reload the list to show updated status
+      setTimeout(loadNewspapers, 2000);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to process newspaper",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleViewAnalysis = (newspaperId: string) => {
+    navigate(`/ai-analysis/${newspaperId}`);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       uploaded: "secondary",
@@ -171,15 +202,33 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="hero"
-                  size="sm"
-                  onClick={() => navigate(`/ai-analysis/${newspaper.id}`)}
-                  disabled={newspaper.status === "processing"}
-                >
-                  <Play className="h-4 w-4 mr-1" />
-                  {newspaper.status === "processing" ? "Processing..." : "Analyze"}
-                </Button>
+                {newspaper.status === 'uploaded' && (
+                  <Button
+                    variant="hero"
+                    size="sm"
+                    onClick={() => handleProcess(newspaper)}
+                    disabled={isLoading}
+                  >
+                    <Brain className="h-4 w-4 mr-1" />
+                    Process
+                  </Button>
+                )}
+                {newspaper.status === 'processing' && (
+                  <Button variant="secondary" size="sm" disabled>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Processing...
+                  </Button>
+                )}
+                {newspaper.status === 'completed' && (
+                  <Button
+                    variant="hero"
+                    size="sm"
+                    onClick={() => handleViewAnalysis(newspaper.id)}
+                  >
+                    <Brain className="h-4 w-4 mr-1" />
+                    View Analysis
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
