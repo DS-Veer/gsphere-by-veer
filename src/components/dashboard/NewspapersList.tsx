@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Trash2, Loader2 } from "lucide-react";
+import { FileText, Trash2, Loader2, Play } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
 interface Newspaper {
@@ -26,6 +27,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const loadNewspapers = async () => {
     setIsLoading(true);
@@ -168,18 +170,29 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                   </div>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(newspaper)}
-                disabled={deletingId === newspaper.id}
-              >
-                {deletingId === newspaper.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="hero"
+                  size="sm"
+                  onClick={() => navigate(`/ai-analysis/${newspaper.id}`)}
+                  disabled={newspaper.status === "processing"}
+                >
+                  <Play className="h-4 w-4 mr-1" />
+                  {newspaper.status === "processing" ? "Processing..." : "Analyze"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(newspaper)}
+                  disabled={deletingId === newspaper.id}
+                >
+                  {deletingId === newspaper.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           ))}
         </div>

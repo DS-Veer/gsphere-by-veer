@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { LogOut, Upload, Newspaper } from "lucide-react";
+import { LogOut, Newspaper, Brain, Map, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 import UploadNewspaper from "@/components/dashboard/UploadNewspaper";
 import NewspapersList from "@/components/dashboard/NewspapersList";
 
@@ -78,17 +79,35 @@ const Dashboard = () => {
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow">
-                <Newspaper className="w-6 h-6 text-accent-foreground" />
-              </div>
-              <span className="text-2xl font-bold bg-gradient-accent bg-clip-text text-transparent">
-                GSphere
-              </span>
+              <Link to="/dashboard" className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow">
+                  <Newspaper className="w-6 h-6 text-accent-foreground" />
+                </div>
+                <span className="text-2xl font-bold bg-gradient-accent bg-clip-text text-transparent">
+                  GSphere
+                </span>
+              </Link>
             </div>
-            <Button variant="ghost" onClick={handleSignOut} className="gap-2">
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-4">
+              <nav className="hidden md:flex items-center gap-2">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/paper-mapping" className="gap-2">
+                    <Map className="w-4 h-4" />
+                    Paper Mapping
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/progress-tracking" className="gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Progress
+                  </Link>
+                </Button>
+              </nav>
+              <Button variant="ghost" onClick={handleSignOut} className="gap-2">
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
