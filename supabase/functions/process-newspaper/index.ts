@@ -178,24 +178,25 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation. Extract individual articles and map them to UPSC GS topics.
+            content: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation. Extract individual articles and provide comprehensive analysis for each.
 
 Available GS Topics:
 ${JSON.stringify(ALL_TOPICS, null, 2)}
 
 For each article, provide:
 1. Title (concise headline)
-2. Content (full text)
-3. Summary (2-3 sentences for quick revision)
-4. Facts (bullet points of key facts, dates, numbers)
-5. Issues (problems/challenges mentioned)
-6. Way Forward (solutions/recommendations)
-7. GS Paper (GS1, GS2, GS3, or GS4)
-8. Static Topics (array of relevant topic names from the list above)
-9. Keywords (important terms for revision)
-10. Is Important (boolean - mark true if article is crucial for UPSC prep)
+2. Content (full text of the article)
+3. GS Paper (GS1, GS2, GS3, or GS4) - primary paper
+4. GS Syllabus Topics (array of specific topics from UPSC syllabus relevant to this article)
+5. Keywords (5-8 important UPSC-relevant terms, abbreviations, institutions)
+6. One Liner (single sentence describing what the article is about)
+7. Key Points (3-4 bullet points summarizing the article for easy recall)
+8. Prelims Card (short note format with definitions and quick facts for prelims preparation)
+9. Static Topics (array of general topic names from the list above)
+10. Static Explanation (detailed explanation connecting article to static syllabus topics, including relevant acts, institutions, and background)
+11. Is Important (boolean - mark true if article is crucial for UPSC prep)
 
-Return a JSON array of articles.`
+Return a JSON array of articles with comprehensive UPSC analysis.`
           },
           {
             role: 'user',
@@ -218,16 +219,17 @@ Return a JSON array of articles.`
                       properties: {
                         title: { type: "string" },
                         content: { type: "string" },
-                        summary: { type: "string" },
-                        facts: { type: "string" },
-                        issues: { type: "string" },
-                        way_forward: { type: "string" },
                         gs_paper: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
-                        static_topics: { type: "array", items: { type: "string" } },
+                        gs_syllabus_topics: { type: "array", items: { type: "string" } },
                         keywords: { type: "array", items: { type: "string" } },
+                        one_liner: { type: "string" },
+                        key_points: { type: "string" },
+                        prelims_card: { type: "string" },
+                        static_topics: { type: "array", items: { type: "string" } },
+                        static_explanation: { type: "string" },
                         is_important: { type: "boolean" }
                       },
-                      required: ["title", "content", "summary", "gs_paper", "static_topics"]
+                      required: ["title", "content", "gs_paper", "gs_syllabus_topics", "keywords", "one_liner", "key_points", "static_topics"]
                     }
                   }
                 },
@@ -265,13 +267,14 @@ Return a JSON array of articles.`
       newspaper_id: newspaperId,
       title: article.title,
       content: article.content,
-      summary: article.summary,
-      facts: article.facts || null,
-      issues: article.issues || null,
-      way_forward: article.way_forward || null,
       gs_paper: article.gs_paper,
-      static_topics: article.static_topics,
+      gs_syllabus_topics: article.gs_syllabus_topics || [],
       keywords: article.keywords || [],
+      one_liner: article.one_liner || null,
+      key_points: article.key_points || null,
+      prelims_card: article.prelims_card || null,
+      static_topics: article.static_topics || [],
+      static_explanation: article.static_explanation || null,
       is_important: article.is_important || false,
       is_revised: false
     }));

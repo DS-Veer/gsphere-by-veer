@@ -18,56 +18,62 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string | null
-          facts: string | null
           gs_paper: Database["public"]["Enums"]["gs_paper"] | null
+          gs_syllabus_topics: string[] | null
           id: string
           is_important: boolean | null
           is_revised: boolean | null
-          issues: string | null
+          key_points: string | null
           keywords: Json | null
           newspaper_id: string
+          one_liner: string | null
+          prelims_card: string | null
+          static_explanation: string | null
           static_topics: string[] | null
           summary: string | null
           syllabus_topic: string | null
           title: string
           updated_at: string | null
-          way_forward: string | null
         }
         Insert: {
           content?: string | null
           created_at?: string | null
-          facts?: string | null
           gs_paper?: Database["public"]["Enums"]["gs_paper"] | null
+          gs_syllabus_topics?: string[] | null
           id?: string
           is_important?: boolean | null
           is_revised?: boolean | null
-          issues?: string | null
+          key_points?: string | null
           keywords?: Json | null
           newspaper_id: string
+          one_liner?: string | null
+          prelims_card?: string | null
+          static_explanation?: string | null
           static_topics?: string[] | null
           summary?: string | null
           syllabus_topic?: string | null
           title: string
           updated_at?: string | null
-          way_forward?: string | null
         }
         Update: {
           content?: string | null
           created_at?: string | null
-          facts?: string | null
           gs_paper?: Database["public"]["Enums"]["gs_paper"] | null
+          gs_syllabus_topics?: string[] | null
           id?: string
           is_important?: boolean | null
           is_revised?: boolean | null
-          issues?: string | null
+          key_points?: string | null
           keywords?: Json | null
           newspaper_id?: string
+          one_liner?: string | null
+          prelims_card?: string | null
+          static_explanation?: string | null
           static_topics?: string[] | null
           summary?: string | null
           syllabus_topic?: string | null
           title?: string
           updated_at?: string | null
-          way_forward?: string | null
         }
         Relationships: [
           {

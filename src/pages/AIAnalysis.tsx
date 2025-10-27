@@ -136,7 +136,7 @@ const AIAnalysis = () => {
                               <Badge variant="outline" className="text-xs">{article.gs_paper}</Badge>
                             </div>
                             <h3 className="font-semibold text-sm line-clamp-3">{article.title}</h3>
-                            <p className="text-xs text-muted-foreground line-clamp-2">{article.summary}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{article.one_liner || article.title}</p>
                           </div>
                         </div>
                       ))}
@@ -161,65 +161,107 @@ const AIAnalysis = () => {
                             <Badge variant="secondary">Revised</Badge>
                           )}
                         </div>
-                        {selectedArticle.static_topics && selectedArticle.static_topics.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {selectedArticle.static_topics.map((topic: string) => (
-                              <Badge key={topic} variant="secondary" className="text-xs">
-                                {topic}
-                              </Badge>
-                            ))}
+                        {selectedArticle.gs_syllabus_topics && selectedArticle.gs_syllabus_topics.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">GS Syllabus Topics:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedArticle.gs_syllabus_topics.map((topic: string, idx: number) => (
+                                <Badge key={idx} variant="secondary" className="text-xs">
+                                  {topic}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <Tabs defaultValue="summary" className="w-full">
+                      <Tabs defaultValue="overview" className="w-full">
                         <TabsList className="grid w-full grid-cols-4">
-                          <TabsTrigger value="summary">Summary</TabsTrigger>
-                          <TabsTrigger value="facts">Facts</TabsTrigger>
-                          <TabsTrigger value="issues">Issues</TabsTrigger>
-                          <TabsTrigger value="wayforward">Way Forward</TabsTrigger>
+                          <TabsTrigger value="overview">Overview</TabsTrigger>
+                          <TabsTrigger value="keypoints">Key Points</TabsTrigger>
+                          <TabsTrigger value="prelims">Prelims Card</TabsTrigger>
+                          <TabsTrigger value="static">Static Syllabus</TabsTrigger>
                         </TabsList>
-                        <TabsContent value="summary" className="space-y-4 mt-4">
+                        
+                        <TabsContent value="overview" className="space-y-4 mt-4">
                           <div>
-                            <h4 className="font-semibold mb-2">Summary</h4>
-                            <p className="text-sm text-muted-foreground">{selectedArticle.summary || "No summary available"}</p>
+                            <h4 className="font-semibold mb-2 flex items-center gap-2">
+                              <span className="text-primary">📰</span> One-Line Summary
+                            </h4>
+                            <p className="text-sm text-muted-foreground bg-accent/50 p-3 rounded-md border">
+                              {selectedArticle.one_liner || "No summary available"}
+                            </p>
                           </div>
+                          
                           {selectedArticle.keywords && selectedArticle.keywords.length > 0 && (
                             <>
                               <Separator />
                               <div>
-                                <h4 className="font-semibold mb-2">Keywords</h4>
+                                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                  <span className="text-primary">🏷️</span> Important Keywords
+                                </h4>
                                 <div className="flex flex-wrap gap-2">
-                                  {selectedArticle.keywords.map((keyword: string) => (
-                                    <Badge key={keyword} variant="outline">{keyword}</Badge>
+                                  {selectedArticle.keywords.map((keyword: string, idx: number) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      {keyword}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {selectedArticle.static_topics && selectedArticle.static_topics.length > 0 && (
+                            <>
+                              <Separator />
+                              <div>
+                                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                  <span className="text-primary">📚</span> Related Static Topics
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedArticle.static_topics.map((topic: string, idx: number) => (
+                                    <Badge key={idx} variant="secondary" className="text-xs">
+                                      {topic}
+                                    </Badge>
                                   ))}
                                 </div>
                               </div>
                             </>
                           )}
                         </TabsContent>
-                        <TabsContent value="facts" className="mt-4">
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <h4 className="font-semibold mb-2">Key Facts</h4>
-                            <div className="whitespace-pre-wrap text-sm text-muted-foreground">
-                              {selectedArticle.facts || 'No facts available'}
+                        
+                        <TabsContent value="keypoints" className="mt-4">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold mb-2 flex items-center gap-2">
+                              <span className="text-primary">📌</span> Key Points (Easy Recall)
+                            </h4>
+                            <div className="whitespace-pre-wrap text-sm text-muted-foreground bg-accent/30 p-4 rounded-md border leading-relaxed">
+                              {selectedArticle.key_points || 'No key points available'}
                             </div>
                           </div>
                         </TabsContent>
-                        <TabsContent value="issues" className="mt-4">
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <h4 className="font-semibold mb-2">Issues & Challenges</h4>
-                            <div className="whitespace-pre-wrap text-sm text-muted-foreground">
-                              {selectedArticle.issues || 'No issues identified'}
+                        
+                        <TabsContent value="prelims" className="mt-4">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold mb-2 flex items-center gap-2">
+                              <span className="text-primary">🎯</span> Prelims Quick Card
+                            </h4>
+                            <div className="whitespace-pre-wrap text-sm text-muted-foreground bg-gradient-to-br from-accent/40 to-accent/20 p-4 rounded-md border-2 border-primary/20 leading-relaxed">
+                              {selectedArticle.prelims_card || 'No prelims card available'}
                             </div>
                           </div>
                         </TabsContent>
-                        <TabsContent value="wayforward" className="mt-4">
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <h4 className="font-semibold mb-2">Way Forward / Solutions</h4>
-                            <div className="whitespace-pre-wrap text-sm text-muted-foreground">
-                              {selectedArticle.way_forward || 'No solutions mentioned'}
+                        
+                        <TabsContent value="static" className="mt-4">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold mb-2 flex items-center gap-2">
+                              <span className="text-primary">📚</span> Static Syllabus Linkage
+                            </h4>
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <div className="whitespace-pre-wrap text-sm text-muted-foreground bg-accent/30 p-4 rounded-md border leading-relaxed">
+                                {selectedArticle.static_explanation || 'No static syllabus explanation available'}
+                              </div>
                             </div>
                           </div>
                         </TabsContent>
