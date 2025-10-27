@@ -186,7 +186,7 @@ ${JSON.stringify(ALL_TOPICS, null, 2)}
 For each article, provide:
 1. Title (concise headline)
 2. Content (full text of the article)
-3. GS Paper (GS1, GS2, GS3, or GS4) - primary paper
+3. GS Papers (array of GS1, GS2, GS3, or GS4) - all relevant papers
 4. GS Syllabus Topics (array of specific topics from UPSC syllabus relevant to this article)
 5. Keywords (5-8 important UPSC-relevant terms, abbreviations, institutions)
 6. One Liner (single sentence describing what the article is about)
@@ -219,7 +219,11 @@ Return a JSON array of articles with comprehensive UPSC analysis.`
                       properties: {
                         title: { type: "string" },
                         content: { type: "string" },
-                        gs_paper: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
+                        gs_papers: { 
+                          type: "array", 
+                          items: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
+                          description: "Array of relevant GS Papers"
+                        },
                         gs_syllabus_topics: { type: "array", items: { type: "string" } },
                         keywords: { type: "array", items: { type: "string" } },
                         one_liner: { type: "string" },
@@ -229,7 +233,7 @@ Return a JSON array of articles with comprehensive UPSC analysis.`
                         static_explanation: { type: "string" },
                         is_important: { type: "boolean" }
                       },
-                      required: ["title", "content", "gs_paper", "gs_syllabus_topics", "keywords", "one_liner", "key_points", "static_topics"]
+                      required: ["title", "content", "gs_papers", "gs_syllabus_topics", "keywords", "one_liner", "key_points", "static_topics"]
                     }
                   }
                 },
@@ -267,7 +271,7 @@ Return a JSON array of articles with comprehensive UPSC analysis.`
       newspaper_id: newspaperId,
       title: article.title,
       content: article.content,
-      gs_paper: article.gs_paper,
+      gs_papers: article.gs_papers || [],
       gs_syllabus_topics: article.gs_syllabus_topics || [],
       keywords: article.keywords || [],
       one_liner: article.one_liner || null,

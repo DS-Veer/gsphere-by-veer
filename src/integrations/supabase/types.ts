@@ -18,7 +18,7 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string | null
-          gs_paper: Database["public"]["Enums"]["gs_paper"] | null
+          gs_papers: Database["public"]["Enums"]["gs_paper"][] | null
           gs_syllabus_topics: string[] | null
           id: string
           is_important: boolean | null
@@ -38,7 +38,7 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string | null
-          gs_paper?: Database["public"]["Enums"]["gs_paper"] | null
+          gs_papers?: Database["public"]["Enums"]["gs_paper"][] | null
           gs_syllabus_topics?: string[] | null
           id?: string
           is_important?: boolean | null
@@ -58,7 +58,7 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string | null
-          gs_paper?: Database["public"]["Enums"]["gs_paper"] | null
+          gs_papers?: Database["public"]["Enums"]["gs_paper"][] | null
           gs_syllabus_topics?: string[] | null
           id?: string
           is_important?: boolean | null

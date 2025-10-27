@@ -129,11 +129,16 @@ const AIAnalysis = () => {
                           }`}
                         >
                           <div className="space-y-2">
-                            <div className="flex items-start gap-2">
+                            <div className="flex items-start gap-2 flex-wrap">
                               {article.is_important && (
                                 <Badge variant="destructive" className="text-xs">Important</Badge>
                               )}
-                              <Badge variant="outline" className="text-xs">{article.gs_paper}</Badge>
+                              {article.gs_papers && article.gs_papers.length > 0 
+                                ? article.gs_papers.map((paper: string) => (
+                                    <Badge key={paper} variant="outline" className="text-xs">{paper}</Badge>
+                                  ))
+                                : <Badge variant="outline" className="text-xs">No GS Paper</Badge>
+                              }
                             </div>
                             <h3 className="font-semibold text-sm line-clamp-3">{article.title}</h3>
                             <p className="text-xs text-muted-foreground line-clamp-2">{article.one_liner || article.title}</p>
@@ -153,7 +158,12 @@ const AIAnalysis = () => {
                       <div className="space-y-3">
                         <CardTitle className="text-xl">{selectedArticle.title}</CardTitle>
                         <div className="flex flex-wrap gap-2">
-                          <Badge>{selectedArticle.gs_paper}</Badge>
+                          {selectedArticle.gs_papers && selectedArticle.gs_papers.length > 0 
+                            ? selectedArticle.gs_papers.map((paper: string) => (
+                                <Badge key={paper}>{paper}</Badge>
+                              ))
+                            : <Badge variant="outline">No GS Paper</Badge>
+                          }
                           {selectedArticle.is_important && (
                             <Badge variant="destructive">Important</Badge>
                           )}
