@@ -136,18 +136,19 @@ serve(async (req) => {
       .select('*')
       .eq('id', newspaperId)
       .single();
-
+    console.log('Fetched Newspaper:', newspaper)
+    
     if (newspaperError) {
       console.error('Error fetching newspaper:', newspaperError);
       throw newspaperError;
     }
-
+    console.log('Updating status to processing..')
     // Update status to processing
     await supabaseClient
       .from('newspapers')
       .update({ status: 'processing' })
       .eq('id', newspaperId);
-
+    console.log('Downloading PDF from storage')
     // Download PDF from storage
     const { data: fileData, error: downloadError } = await supabaseClient
       .storage
@@ -158,7 +159,7 @@ serve(async (req) => {
       console.error('Error downloading file:', downloadError);
       throw downloadError;
     }
-
+    console.log('Converting pdf to base64...')
     // Convert PDF to base64 for AI processing
     const arrayBuffer = await fileData.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
