@@ -44,7 +44,7 @@ const PreviewNewspaper = () => {
     };
 
     loadPdf();
-  }, [id]);
+  }, [newspaperId]);
 
   if (loading) {
     return (
