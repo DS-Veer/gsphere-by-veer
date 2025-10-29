@@ -128,17 +128,15 @@ serve(async (req) => {
     );
 
     const { newspaperId } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    console.log('API Key:', LOVALBLE_API_KEY)
     console.log('Processing newspaper:', newspaperId);
 
     // Get newspaper details
-    const { data: newspaper, error: newspaperError } = await supabaseClient
+    const { data: newspaperFilePath, error: newspaperError } = await supabaseClient
       .from('newspapers')
-      .select('*')
+      .select('file_path')
       .eq('id', newspaperId)
       .single();
-    console.log('Fetched Newspaper:', newspaper)
+    console.log('Fetched Newspaper File Path:', newspaperFilePath)
     
     if (newspaperError) {
       console.error('Error fetching newspaper:', newspaperError);
@@ -155,7 +153,7 @@ serve(async (req) => {
     const { data: fileData, error: downloadError } = await supabaseClient
       .storage
       .from('newspapers')
-      .download(newspaper.file_path);
+      .download(newspaperFilePath);
 
     if (downloadError) {
       console.error('Error downloading file:', downloadError);
@@ -169,7 +167,7 @@ serve(async (req) => {
     console.log('Calling AI to extract articles...');
 
     // Call AI to extract articles
-    // const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
