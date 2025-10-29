@@ -127,16 +127,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { newspaperId } = await req.json();
-    console.log('Processing newspaper:', newspaperId);
-
     // Get newspaper details
     const { data: newspaperFilePath, error: newspaperError } = await supabaseClient
       .from('newspapers')
       .select('file_path')
-      .eq('id', newspaperId)
+      .eq('id', 'bba99be2-8841-4731-a956-764ff6a61599')
       .single();
     console.log('Fetched Newspaper File Path:', newspaperFilePath)
+    
+    const { newspaperId } = await req.json();
+    console.log('Processing newspaper:', newspaperId);
+
+    
     
     if (newspaperError) {
       console.error('Error fetching newspaper:', newspaperError);
