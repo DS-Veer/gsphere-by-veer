@@ -184,30 +184,30 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
           {newspapers.map((newspaper) => (
             <div
               key={newspaper.id}
-              className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/5 transition-colors"
+              className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/5 transition-colors"
             >
-              {/* Left: icon + text (allow shrink) */}
-              <div className="flex items-center gap-4 flex-1 min-w-0">
+              {/* LEFT: Icon + text */}
+              <div className="flex items-start md:items-center gap-4 flex-1 min-w-0">
                 <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow flex-shrink-0">
                   <FileText className="w-5 h-5 text-accent-foreground" />
                 </div>
           
-                {/* This container must be min-w-0 so child truncate works */}
+                {/* text area must be min-w-0 for truncate to work */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {/* Truncate the file name on one line */}
+                  {/* file name + badge row */}
+                  <div className="flex items-start md:items-center gap-2 mb-1">
                     <p className="font-medium truncate text-sm md:text-base">
                       {newspaper.file_name}
                     </p>
           
-                    {/* Keep badge visible and prevent it from shrinking */}
-                    <div className="flex-shrink-0 ml-1">
+                    {/* badge: keep it visible, but allow it to wrap under name on tiny screens */}
+                    <div className="flex-shrink-0 mt-1 md:mt-0">
                       {getStatusBadge(newspaper.status)}
                     </div>
                   </div>
           
-                  {/* Date and size: allow wrapping on very small screens */}
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                  {/* metadata: allow wrapping and normal whitespace so it doesn't force width */}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap whitespace-normal break-words">
                     <span className="min-w-0">
                       Date: {format(new Date(newspaper.upload_date), "PPP")}
                     </span>
@@ -218,30 +218,34 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                 </div>
               </div>
           
-              {/* Right: actions — don't let these shrink or wrap under the text */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {newspaper.status === 'uploaded' && (
+              {/* ACTIONS: stacked on mobile, inline on md+ */}
+              <div className="w-full md:w-auto mt-3 md:mt-0 flex items-center gap-2 flex-wrap md:flex-nowrap">
+                {newspaper.status === "uploaded" && (
                   <Button
                     variant="hero"
                     size="sm"
                     onClick={() => handleProcess(newspaper)}
                     disabled={isLoading}
+                    className="w-full md:w-auto"
                   >
                     <Brain className="h-4 w-4 mr-1" />
                     Process
                   </Button>
                 )}
-                {newspaper.status === 'processing' && (
-                  <Button variant="secondary" size="sm" disabled>
+          
+                {newspaper.status === "processing" && (
+                  <Button variant="secondary" size="sm" disabled className="w-full md:w-auto">
                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     Processing...
                   </Button>
                 )}
-                {newspaper.status === 'completed' && (
+          
+                {newspaper.status === "completed" && (
                   <Button
                     variant="hero"
                     size="sm"
                     onClick={() => handleViewAnalysis(newspaper.id)}
+                    className="w-full md:w-auto"
                   >
                     <Brain className="h-4 w-4 mr-1" />
                     View Analysis
@@ -252,6 +256,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                   variant="secondary"
                   size="sm"
                   onClick={() => handlePreviewNewspaper(newspaper.id)}
+                  className="w-full md:w-auto"
                 >
                   Preview PDF
                 </Button>
@@ -261,6 +266,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                   size="icon"
                   onClick={() => handleDelete(newspaper)}
                   disabled={deletingId === newspaper.id}
+                  className="flex-shrink-0"
                 >
                   {deletingId === newspaper.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
