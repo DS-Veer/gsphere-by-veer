@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft } from "lucide-react";
 
 const PreviewNewspaper = () => {
-  const { id } = useParams(); // newspaper id
+  const { newspaperId } = useParams<{ newspaperId: string }>();
+
+  console.log("📰 Newspaper ID from URL:", newspaperId);
+
+  if (!newspaperId) {
+    return <div>Error: Newspaper ID not found.</div>;
+  }
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -17,7 +23,7 @@ const PreviewNewspaper = () => {
         const { data, error } = await supabase
           .from("newspapers")
           .select("file_path")
-          .eq("id", id)
+          .eq("id", newspaperId)
           .single();
 
         if (error) throw error;
