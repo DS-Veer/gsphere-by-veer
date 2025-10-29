@@ -186,17 +186,29 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
               key={newspaper.id}
               className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/5 transition-colors"
             >
-              <div className="flex items-center gap-4 flex-1">
-                <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow">
+              {/* Left: icon + text (allow shrink) */}
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow flex-shrink-0">
                   <FileText className="w-5 h-5 text-accent-foreground" />
                 </div>
-                <div className="flex-1">
+          
+                {/* This container must be min-w-0 so child truncate works */}
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium">{newspaper.file_name}</p>
-                    {getStatusBadge(newspaper.status)}
+                    {/* Truncate the file name on one line */}
+                    <p className="font-medium truncate text-sm md:text-base">
+                      {newspaper.file_name}
+                    </p>
+          
+                    {/* Keep badge visible and prevent it from shrinking */}
+                    <div className="flex-shrink-0 ml-1">
+                      {getStatusBadge(newspaper.status)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>
+          
+                  {/* Date and size: allow wrapping on very small screens */}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                    <span className="min-w-0">
                       Date: {format(new Date(newspaper.upload_date), "PPP")}
                     </span>
                     <span>
@@ -205,7 +217,9 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+          
+              {/* Right: actions — don't let these shrink or wrap under the text */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {newspaper.status === 'uploaded' && (
                   <Button
                     variant="hero"
@@ -233,6 +247,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                     View Analysis
                   </Button>
                 )}
+          
                 <Button
                   variant="secondary"
                   size="sm"
@@ -240,6 +255,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                 >
                   Preview PDF
                 </Button>
+          
                 <Button
                   variant="ghost"
                   size="icon"
