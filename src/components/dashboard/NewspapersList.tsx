@@ -184,96 +184,98 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
           {newspapers.map((newspaper) => (
             <div
               key={newspaper.id}
-              className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/5 transition-colors"
+              className="w-full p-4 rounded-lg border border-border hover:bg-accent/5 transition-colors"
             >
-              {/* LEFT: Icon + text */}
-              <div className="flex items-start md:items-center gap-4 flex-1 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow flex-shrink-0">
-                  <FileText className="w-5 h-5 text-accent-foreground" />
-                </div>
+              {/* grid: text on left, actions on right (single column on mobile) */}
+              <div className="grid grid-cols-1 md:grid-cols-[1fr,auto] gap-3 items-start">
+                {/* LEFT: icon + text */}
+                <div className="flex items-start gap-4 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow flex-shrink-0">
+                    <FileText className="w-5 h-5 text-accent-foreground" />
+                  </div>
           
-                {/* text area must be min-w-0 for truncate to work */}
-                <div className="flex-1 min-w-0">
-                  {/* file name + badge row */}
-                  <div className="flex items-start md:items-center gap-2 mb-1">
-                    <p className="font-medium truncate text-sm md:text-base">
-                      {newspaper.file_name}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    {/* filename + small badge (badge will appear top-right in md layout) */}
+                    <div className="flex items-start md:items-center gap-2">
+                      <p className="font-medium truncate text-sm md:text-base min-w-0">
+                        {newspaper.file_name}
+                      </p>
+                    </div>
           
-                    {/* badge: keep it visible, but allow it to wrap under name on tiny screens */}
-                    <div className="flex-shrink-0 mt-1 md:mt-0">
-                      {getStatusBadge(newspaper.status)}
+                    {/* metadata below the filename; allow wrapping */}
+                    <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground flex-wrap whitespace-normal break-words">
+                      <span className="min-w-0">
+                        Date: {format(new Date(newspaper.upload_date), "PPP")}
+                      </span>
+                      <span>{(newspaper.file_size / (1024 * 1024)).toFixed(2)} MB</span>
                     </div>
                   </div>
+                </div>
           
-                  {/* metadata: allow wrapping and normal whitespace so it doesn't force width */}
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap whitespace-normal break-words">
-                    <span className="min-w-0">
-                      Date: {format(new Date(newspaper.upload_date), "PPP")}
-                    </span>
-                    <span>
-                      {(newspaper.file_size / (1024 * 1024)).toFixed(2)} MB
-                    </span>
+                {/* RIGHT: badge (at top) + actions (stack on mobile, inline on md+) */}
+                <div className="flex flex-col items-start md:items-end gap-3">
+                  <div className="self-end md:self-auto">
+                    {/* keep badge visible and positioned to the right column */}
+                    {getStatusBadge(newspaper.status)}
+                  </div>
+          
+                  <div className="w-full md:w-auto flex flex-col md:flex-row items-stretch md:items-center gap-2">
+                    {newspaper.status === "uploaded" && (
+                      <Button
+                        variant="hero"
+                        size="sm"
+                        onClick={() => handleProcess(newspaper)}
+                        disabled={isLoading}
+                        className="w-full md:w-auto"
+                      >
+                        <Brain className="h-4 w-4 mr-1" />
+                        Process
+                      </Button>
+                    )}
+          
+                    {newspaper.status === "processing" && (
+                      <Button variant="secondary" size="sm" disabled className="w-full md:w-auto">
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Processing...
+                      </Button>
+                    )}
+          
+                    {newspaper.status === "completed" && (
+                      <Button
+                        variant="hero"
+                        size="sm"
+                        onClick={() => handleViewAnalysis(newspaper.id)}
+                        className="w-full md:w-auto"
+                      >
+                        <Brain className="h-4 w-4 mr-1" />
+                        View Analysis
+                      </Button>
+                    )}
+          
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handlePreviewNewspaper(newspaper.id)}
+                      className="w-full md:w-auto"
+                    >
+                      Preview PDF
+                    </Button>
+          
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(newspaper)}
+                      disabled={deletingId === newspaper.id}
+                      className="flex-shrink-0"
+                    >
+                      {deletingId === newspaper.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
-              </div>
-          
-              {/* ACTIONS: stacked on mobile, inline on md+ */}
-              <div className="w-full md:w-auto mt-3 md:mt-0 flex items-center gap-2 flex-wrap md:flex-nowrap">
-                {newspaper.status === "uploaded" && (
-                  <Button
-                    variant="hero"
-                    size="sm"
-                    onClick={() => handleProcess(newspaper)}
-                    disabled={isLoading}
-                    className="w-full md:w-auto"
-                  >
-                    <Brain className="h-4 w-4 mr-1" />
-                    Process
-                  </Button>
-                )}
-          
-                {newspaper.status === "processing" && (
-                  <Button variant="secondary" size="sm" disabled className="w-full md:w-auto">
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Processing...
-                  </Button>
-                )}
-          
-                {newspaper.status === "completed" && (
-                  <Button
-                    variant="hero"
-                    size="sm"
-                    onClick={() => handleViewAnalysis(newspaper.id)}
-                    className="w-full md:w-auto"
-                  >
-                    <Brain className="h-4 w-4 mr-1" />
-                    View Analysis
-                  </Button>
-                )}
-          
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handlePreviewNewspaper(newspaper.id)}
-                  className="w-full md:w-auto"
-                >
-                  Preview PDF
-                </Button>
-          
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(newspaper)}
-                  disabled={deletingId === newspaper.id}
-                  className="flex-shrink-0"
-                >
-                  {deletingId === newspaper.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
               </div>
             </div>
           ))}
