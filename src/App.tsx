@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import AIAnalysis from "./pages/AIAnalysis";
 import PaperMapping from "./pages/PaperMapping";
 import ProgressTracking from "./pages/ProgressTracking";
+import PreviewNewspaper from "./pages/PreviewNewspaper";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/ai-analysis/:newspaperId" element={<AIAnalysis />} />
           <Route path="/paper-mapping" element={<PaperMapping />} />
           <Route path="/progress-tracking" element={<ProgressTracking />} />
+          <Route path="/preview/:newspaperId" element={<PreviewNewspaper />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
