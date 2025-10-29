@@ -155,7 +155,7 @@ serve(async (req) => {
     const { data: fileData, error: downloadError } = await supabaseClient
       .storage
       .from('newspapers')
-      .download(newspaperFilePath);
+      .download(newspaperFilePath.file_path);
 
     if (downloadError) {
       console.error('Error downloading file:', downloadError);
