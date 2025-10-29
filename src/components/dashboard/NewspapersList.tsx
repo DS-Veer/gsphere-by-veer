@@ -131,6 +131,9 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
   const handleViewAnalysis = (newspaperId: string) => {
     navigate(`/ai-analysis/${newspaperId}`);
   };
+  const handlePreviewNewspaper = (newspaperId: string) => {
+    navigate(`/preview/${newspaperId}`);
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
@@ -230,6 +233,13 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                     View Analysis
                   </Button>
                 )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handlePreviewNewspaper(newspaper.id)}
+                >
+                  Preview PDF
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
