@@ -103,6 +103,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
   const handleProcess = async (newspaper: Newspaper) => {
     setIsLoading(true);
     try {
+      console.log("Newspaper id to process: ", newspaper.id)
       const { error } = await supabase.functions.invoke('process-newspaper', {
         body: { newspaperId: newspaper.id }
       });
