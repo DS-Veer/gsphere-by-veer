@@ -146,7 +146,11 @@ serve(async (req) => {
     
     if (newspaperError) {
       console.error('Error fetching newspaper:', newspaperError);
-      throw newspaperError;
+      throw new Error(`Newspaper not found: ${newspaperError.message}`);
+    }
+    
+    if (!newspaperFilePath?.file_path) {
+      throw new Error('Newspaper file path is missing');
     }
     console.log('Updating status to processing..')
     // Update status to processing
@@ -156,7 +160,7 @@ serve(async (req) => {
       .eq('id', newspaperId);
     console.log('Downloading PDF from storage')
     // Download PDF from storage
-    const { data: fileData, error: downloadError } = await supabaseClient
+    const { data: fileData, error: downloadError} = await supabaseClient
       .storage
       .from('newspapers')
       .download(newspaperFilePath.file_path);
@@ -165,10 +169,21 @@ serve(async (req) => {
       console.error('Error downloading file:', downloadError);
       throw downloadError;
     }
-    console.log('Converting pdf to base64...')
-    // Convert PDF to base64 for AI processing
+    
+    console.log('PDF downloaded, preparing for AI processing...');
+    
+    // Get PDF as array buffer for AI processing
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to binary string for base64 encoding
+    let binaryString = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binaryString += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binaryString);
+    
+    console.log('PDF prepared for AI, size:', base64.length);
 
     console.log('Calling AI to extract articles...');
 
@@ -191,8 +206,11 @@ serve(async (req) => {
         model: 'google/gemini-2.5-flash',
         messages: [
           {
-            role: 'system',
-            content: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation. Extract individual articles and provide comprehensive analysis for each.
+            role: 'user',
+            content: [
+              {
+                type: "text",
+                text: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation. Extract individual articles and provide comprehensive analysis for each.
 
 Available GS Topics:
 ${JSON.stringify(ALL_TOPICS, null, 2)}
@@ -210,11 +228,15 @@ For each article, provide:
 10. Static Explanation (detailed explanation connecting article to static syllabus topics, including relevant acts, institutions, and background)
 11. Is Important (boolean - mark true if article is crucial for UPSC prep)
 
-Return a JSON array of articles with comprehensive UPSC analysis.`
-          },
-          {
-            role: 'user',
-            content: `Analyze this newspaper PDF and extract all articles with UPSC GS topic mapping. The PDF is base64 encoded: ${base64.substring(0, 100)}... (truncated for context)`
+Analyze the newspaper PDF attached and extract all articles with comprehensive UPSC GS topic mapping.`
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:application/pdf;base64,${base64}`
+                }
+              }
+            ]
           }
         ],
         tools: [
