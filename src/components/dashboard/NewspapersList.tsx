@@ -104,11 +104,21 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
     setIsLoading(true);
     try {
       console.log("Newspaper id to process: ", newspaper.id)
-      const { error } = await supabase.functions.invoke('process-newspaper', {
+      const { data, error } = await supabase.functions.invoke('process-newspaper', {
         body: { newspaperId: newspaper.id }
       });
 
-      if (error) throw error;
+      console.log('Edge function response:', { data, error });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to process newspaper');
+      }
+
+      if (data && !data.success) {
+        console.error('Processing failed:', data);
+        throw new Error(data.error || 'Processing failed');
+      }
 
       toast({
         title: "Processing started",
@@ -118,10 +128,11 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
       // Reload the list to show updated status
       setTimeout(loadNewspapers, 2000);
     } catch (error: any) {
+      console.error('Process error:', error);
       toast({
         variant: "destructive",
         title: "Failed to process newspaper",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
       });
     } finally {
       setIsLoading(false);

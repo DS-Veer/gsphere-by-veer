@@ -122,6 +122,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Edge function invoked');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -129,6 +131,10 @@ serve(async (req) => {
     
     const { newspaperId } = await req.json();
     console.log('Processing newspaper:', newspaperId);
+
+    if (!newspaperId) {
+      throw new Error('newspaperId is required');
+    }
 
     // Get newspaper details
     const { data: newspaperFilePath, error: newspaperError } = await supabaseClient
@@ -168,6 +174,13 @@ serve(async (req) => {
 
     // Call AI to extract articles
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY not found in environment');
+      throw new Error('AI service configuration error');
+    }
+    
+    console.log('Making AI request...');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -312,11 +325,31 @@ Return a JSON array of articles with comprehensive UPSC analysis.`
 
   } catch (error) {
     console.error('Error processing newspaper:', error);
+    console.error('Error details:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Update newspaper status to failed
+    try {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      const requestBody = await req.json().catch(() => ({}));
+      if (requestBody.newspaperId) {
+        await supabaseClient
+          .from('newspapers')
+          .update({ status: 'failed' })
+          .eq('id', requestBody.newspaperId);
+      }
+    } catch (updateError) {
+      console.error('Failed to update newspaper status:', updateError);
+    }
     
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : undefined
       }),
       { 
         status: 500, 
