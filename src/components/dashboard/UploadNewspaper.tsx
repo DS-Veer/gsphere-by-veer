@@ -177,7 +177,7 @@ const UploadNewspaper = ({ userId }: UploadNewspaperProps) => {
           onClick={handleUpload}
           disabled={!file || isUploading}
           className="w-full"
-          variant="hero"
+          variant="accent"
         >
           {isUploading ? (
             <>

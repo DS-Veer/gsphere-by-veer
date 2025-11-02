@@ -127,7 +127,7 @@ const PaperMapping = () => {
                                     )}
                                   </div>
                                 </div>
-                                <Button variant="hero" size="sm" asChild>
+                                <Button variant="accent" size="sm" asChild>
                                   <Link to={`/ai-analysis/${article.newspaper_id}`}>
                                     View Analysis
                                   </Link>

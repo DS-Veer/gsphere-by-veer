@@ -104,7 +104,7 @@ const AIAnalysis = () => {
                 <p className="text-muted-foreground mb-4">
                   The AI analysis for this newspaper is being processed
                 </p>
-                <Button variant="hero" onClick={() => navigate("/dashboard")}>
+                <Button variant="accent" onClick={() => navigate("/dashboard")}>
                   Back to Dashboard
                 </Button>
               </CardContent>

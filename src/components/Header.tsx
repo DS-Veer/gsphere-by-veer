@@ -1,45 +1,77 @@
 import { Button } from "@/components/ui/button";
-import { Newspaper, Menu } from "lucide-react";
+import { Newspaper } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check initial auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow">
-              <Newspaper className="w-6 h-6 text-accent-foreground" />
+          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+              <Newspaper className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-accent bg-clip-text text-transparent">
+            <span className="text-xl font-semibold text-foreground">
               GSphere
             </span>
-          </div>
+          </a>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Features
             </a>
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               How It Works
             </a>
-            <a href="#dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
-            </a>
           </nav>
 
           {/* CTA Buttons */}
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => window.location.href = "/auth"}>
-              Sign In
-            </Button>
-            <Button variant="hero" onClick={() => window.location.href = "/auth"}>
-              Get Started
-            </Button>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="w-5 h-5" />
-            </Button>
+          <div className="flex items-center gap-3">
+            {isLoggedIn ? (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+                  Dashboard
+                </Button>
+                <Button variant="outline" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/auth")}>
+                  Sign In
+                </Button>
+                <Button onClick={() => navigate("/auth")}>
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

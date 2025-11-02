@@ -28,13 +28,13 @@ const features = [
 
 const Features = () => {
   return (
-    <section className="py-24 bg-secondary/30">
+    <section id="features" className="py-24 bg-secondary">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold">
+        <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
             Smart Features for{" "}
-            <span className="bg-gradient-accent bg-clip-text text-transparent">
+            <span className="text-accent">
               UPSC Success
             </span>
           </h2>
@@ -48,104 +48,102 @@ const Features = () => {
           {features.map((feature, index) => (
             <Card 
               key={index} 
-              className="bg-card border-border shadow-medium hover:shadow-strong transition-all duration-300 hover:-translate-y-1"
+              className="border hover:border-accent/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-medium group"
             >
               <CardContent className="p-6 space-y-4">
-                <div className="w-12 h-12 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow">
-                  <feature.icon className="w-6 h-6 text-accent-foreground" />
+                <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                  <feature.icon className="w-6 h-6 text-accent" />
                 </div>
-                <h3 className="text-xl font-semibold">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="text-lg font-semibold text-foreground">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
         {/* Feature Showcase */}
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* AI Analysis */}
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-light border border-accent/20">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20">
               <Brain className="w-4 h-4 text-accent" />
-              <span className="text-sm font-medium">Intelligent Analysis</span>
+              <span className="text-sm font-medium text-accent">Intelligent Analysis</span>
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold">
+            <h3 className="text-3xl md:text-4xl font-bold text-foreground">
               AI That Understands UPSC Requirements
             </h3>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Our advanced AI doesn't just summarize—it analyzes content through the lens of UPSC syllabus, 
-              extracting key facts, identifying critical issues, and suggesting potential solutions aligned 
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Our advanced AI analyzes content through the lens of UPSC syllabus, 
+              extracting key facts, identifying critical issues, and suggesting solutions aligned 
               with exam requirements.
             </p>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <div className="w-2 h-2 rounded-full bg-accent" />
                 </div>
-                <span className="text-muted-foreground">Keyword extraction with contextual definitions</span>
+                <span className="text-sm text-muted-foreground">Keyword extraction with contextual definitions</span>
               </li>
               <li className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <div className="w-2 h-2 rounded-full bg-accent" />
                 </div>
-                <span className="text-muted-foreground">Links current affairs to static topics</span>
+                <span className="text-sm text-muted-foreground">Links current affairs to static topics</span>
               </li>
               <li className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <div className="w-2 h-2 rounded-full bg-accent" />
                 </div>
-                <span className="text-muted-foreground">Structured notes in Facts/Issues/Way Forward format</span>
+                <span className="text-sm text-muted-foreground">Structured notes in Facts/Issues/Way Forward format</span>
               </li>
             </ul>
           </div>
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-accent opacity-20 blur-3xl rounded-full" />
             <img 
               src={aiAnalysisImage} 
               alt="AI Analysis Interface" 
-              className="relative rounded-2xl shadow-strong"
+              className="rounded-xl shadow-medium border"
             />
           </div>
 
           {/* Dashboard - Reversed Order on Desktop */}
           <div className="relative lg:order-last">
-            <div className="absolute inset-0 bg-gradient-hero opacity-20 blur-3xl rounded-full" />
             <img 
               src={dashboardImage} 
               alt="Dashboard Interface" 
-              className="relative rounded-2xl shadow-strong"
+              className="rounded-xl shadow-medium border"
             />
           </div>
           <div className="space-y-6 lg:order-last">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Progress Tracking</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20">
+              <TrendingUp className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium text-accent">Progress Tracking</span>
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold">
+            <h3 className="text-3xl md:text-4xl font-bold text-foreground">
               Organized Dashboard for Systematic Study
             </h3>
-            <p className="text-lg text-muted-foreground leading-relaxed">
+            <p className="text-base text-muted-foreground leading-relaxed">
               View all analyzed articles organized by GS Paper and themes. Track your daily coverage, 
               identify recurring topics, and ensure comprehensive preparation across all subjects.
             </p>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
+                <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-2 h-2 rounded-full bg-accent" />
                 </div>
-                <span className="text-muted-foreground">Filter by GS Paper, theme, or keyword</span>
+                <span className="text-sm text-muted-foreground">Filter by GS Paper, theme, or keyword</span>
               </li>
               <li className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
+                <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-2 h-2 rounded-full bg-accent" />
                 </div>
-                <span className="text-muted-foreground">Mark articles as revised or important</span>
+                <span className="text-sm text-muted-foreground">Mark articles as revised or important</span>
               </li>
               <li className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
+                <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-2 h-2 rounded-full bg-accent" />
                 </div>
-                <span className="text-muted-foreground">Export notes as PDF or Markdown</span>
+                <span className="text-sm text-muted-foreground">Export notes as PDF or Markdown</span>
               </li>
             </ul>
           </div>

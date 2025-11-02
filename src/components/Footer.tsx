@@ -2,20 +2,20 @@ import { Newspaper, Github, Twitter, Linkedin } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="border-t border-border bg-secondary/30">
+    <footer className="border-t bg-background">
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center shadow-glow">
-                <Newspaper className="w-6 h-6 text-accent-foreground" />
+              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+                <Newspaper className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-2xl font-bold bg-gradient-accent bg-clip-text text-transparent">
+              <span className="text-xl font-semibold text-foreground">
                 GSphere
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               AI-powered newspaper analysis for UPSC aspirants. Transform daily reading into smart, syllabus-mapped notes.
             </p>
           </div>

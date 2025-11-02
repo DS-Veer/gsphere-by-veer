@@ -233,7 +233,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                   <div className="w-full md:w-auto flex flex-col md:flex-row items-stretch md:items-center gap-2">
                     {newspaper.status === "uploaded" && (
                       <Button
-                        variant="hero"
+                        variant="accent"
                         size="sm"
                         onClick={() => handleProcess(newspaper)}
                         disabled={isLoading}
@@ -253,7 +253,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
           
                     {newspaper.status === "completed" && (
                       <Button
-                        variant="hero"
+                        variant="accent"
                         size="sm"
                         onClick={() => handleViewAnalysis(newspaper.id)}
                         className="w-full md:w-auto"
