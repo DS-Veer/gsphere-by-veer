@@ -100,6 +100,30 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
     }
   };
 
+  const handleCancelProcessing = async (newspaperId: string) => {
+    try {
+      const { error } = await supabase
+        .from("newspapers")
+        .update({ status: "failed", error_message: "Processing cancelled by user" })
+        .eq("id", newspaperId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Processing cancelled",
+        description: "Newspaper processing has been stopped.",
+      });
+
+      loadNewspapers();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to cancel processing",
+        description: error.message,
+      });
+    }
+  };
+
   const handleProcess = async (newspaper: Newspaper) => {
     setIsLoading(true);
     try {
@@ -134,6 +158,14 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
         title: "Failed to process newspaper",
         description: error.message || "An unexpected error occurred",
       });
+      
+      // Update status to failed if edge function call fails
+      await supabase
+        .from("newspapers")
+        .update({ status: "failed", error_message: error.message })
+        .eq("id", newspaper.id);
+      
+      loadNewspapers();
     } finally {
       setIsLoading(false);
     }
@@ -154,9 +186,16 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
       failed: "destructive",
     };
 
+    const labels: Record<string, string> = {
+      uploaded: "Uploaded",
+      processing: "Processing",
+      completed: "Completed",
+      failed: "Failed",
+    };
+
     return (
       <Badge variant={variants[status] || "default"}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {labels[status] || status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
@@ -245,10 +284,20 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                     )}
           
                     {newspaper.status === "processing" && (
-                      <Button variant="secondary" size="sm" disabled className="w-full md:w-auto">
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Processing...
-                      </Button>
+                      <>
+                        <Button variant="secondary" size="sm" disabled className="w-full md:w-auto">
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Processing...
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleCancelProcessing(newspaper.id)}
+                          className="w-full md:w-auto"
+                        >
+                          Cancel
+                        </Button>
+                      </>
                     )}
           
                     {newspaper.status === "completed" && (
@@ -260,6 +309,19 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                       >
                         <Brain className="h-4 w-4 mr-1" />
                         View Analysis
+                      </Button>
+                    )}
+
+                    {newspaper.status === "failed" && (
+                      <Button
+                        variant="accent"
+                        size="sm"
+                        onClick={() => handleProcess(newspaper)}
+                        disabled={isLoading}
+                        className="w-full md:w-auto"
+                      >
+                        <Brain className="h-4 w-4 mr-1" />
+                        Retry
                       </Button>
                     )}
           
