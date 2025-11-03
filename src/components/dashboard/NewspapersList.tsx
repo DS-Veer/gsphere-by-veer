@@ -26,6 +26,8 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
   const [newspapers, setNewspapers] = useState<Newspaper[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -101,6 +103,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
   };
 
   const handleCancelProcessing = async (newspaperId: string) => {
+    setCancellingId(newspaperId);
     try {
       const { error } = await supabase
         .from("newspapers")
@@ -121,11 +124,13 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
         title: "Failed to cancel processing",
         description: error.message,
       });
+    } finally {
+      setCancellingId(null);
     }
   };
 
   const handleProcess = async (newspaper: Newspaper) => {
-    setIsLoading(true);
+    setProcessingId(newspaper.id);
     try {
       console.log("Newspaper id to process: ", newspaper.id)
       const { data, error } = await supabase.functions.invoke('process-newspaper', {
@@ -167,7 +172,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
       
       loadNewspapers();
     } finally {
-      setIsLoading(false);
+      setProcessingId(null);
     }
   };
 
@@ -275,11 +280,20 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                         variant="accent"
                         size="sm"
                         onClick={() => handleProcess(newspaper)}
-                        disabled={isLoading}
+                        disabled={processingId === newspaper.id}
                         className="w-full md:w-auto"
                       >
-                        <Brain className="h-4 w-4 mr-1" />
-                        Process
+                        {processingId === newspaper.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Starting...
+                          </>
+                        ) : (
+                          <>
+                            <Brain className="h-4 w-4 mr-1" />
+                            Process
+                          </>
+                        )}
                       </Button>
                     )}
           
@@ -293,8 +307,12 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                           variant="destructive"
                           size="sm"
                           onClick={() => handleCancelProcessing(newspaper.id)}
+                          disabled={cancellingId === newspaper.id}
                           className="w-full md:w-auto"
                         >
+                          {cancellingId === newspaper.id ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : null}
                           Cancel
                         </Button>
                       </>
@@ -317,11 +335,20 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                         variant="accent"
                         size="sm"
                         onClick={() => handleProcess(newspaper)}
-                        disabled={isLoading}
+                        disabled={processingId === newspaper.id}
                         className="w-full md:w-auto"
                       >
-                        <Brain className="h-4 w-4 mr-1" />
-                        Retry
+                        {processingId === newspaper.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Retrying...
+                          </>
+                        ) : (
+                          <>
+                            <Brain className="h-4 w-4 mr-1" />
+                            Retry
+                          </>
+                        )}
                       </Button>
                     )}
           
