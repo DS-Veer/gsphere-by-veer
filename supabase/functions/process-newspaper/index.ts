@@ -3,13 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Comprehensive UPSC GS Topics
+// ======= UPSC Topics ===========
 const GS_TOPICS = {
-  "GS1": [
+  GS1: [
     "Indian Heritage and Culture",
     "Ancient Indian History",
     "Medieval Indian History",
@@ -27,9 +27,9 @@ const GS_TOPICS = {
     "World Geography",
     "Physical Geography",
     "Economic Geography",
-    "Geopolitics"
+    "Geopolitics",
   ],
-  "GS2": [
+  GS2: [
     "Indian Constitution",
     "Constitutional Framework",
     "Federal Structure",
@@ -54,9 +54,9 @@ const GS_TOPICS = {
     "International Relations",
     "International Organizations",
     "Foreign Policy",
-    "India and Its Neighbors"
+    "India and Its Neighbors",
   ],
-  "GS3": [
+  GS3: [
     "Economic Development",
     "Indian Economy",
     "Planning",
@@ -86,10 +86,10 @@ const GS_TOPICS = {
     "Border Management",
     "Terrorism",
     "Cyber Security",
-    "Money Launtering",
-    "Defense and Security"
+    "Money Laundering",
+    "Defense and Security",
   ],
-  "GS4": [
+  GS4: [
     "Ethics and Human Interface",
     "Essence, Determinants and Consequences of Ethics",
     "Dimensions of Ethics",
@@ -106,323 +106,179 @@ const GS_TOPICS = {
     "Ethical Guidance",
     "Accountability and Ethical Governance",
     "Strengthening Ethical and Moral Values",
-    "Case Studies"
-  ]
+    "Case Studies",
+  ],
 };
 
 const ALL_TOPICS = [
-  ...GS_TOPICS.GS1.map(t => ({ topic: t, paper: "GS1" })),
-  ...GS_TOPICS.GS2.map(t => ({ topic: t, paper: "GS2" })),
-  ...GS_TOPICS.GS3.map(t => ({ topic: t, paper: "GS3" })),
-  ...GS_TOPICS.GS4.map(t => ({ topic: t, paper: "GS4" }))
+  ...GS_TOPICS.GS1.map((t) => ({ topic: t, paper: "GS1" })),
+  ...GS_TOPICS.GS2.map((t) => ({ topic: t, paper: "GS2" })),
+  ...GS_TOPICS.GS3.map((t) => ({ topic: t, paper: "GS3" })),
+  ...GS_TOPICS.GS4.map((t) => ({ topic: t, paper: "GS4" })),
 ];
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    console.log('Edge function invoked');
-    
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-    
     const { newspaperId } = await req.json();
-    console.log('Processing newspaper:', newspaperId);
+    console.log("Processing newspaper:", newspaperId);
 
-    if (!newspaperId) {
-      throw new Error('newspaperId is required');
-    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
-    // Get newspaper details
-    const { data: newspaper, error: newspaperError } = await supabaseClient
-      .from('newspapers')
-      .select('file_path, user_id')
-      .eq('id', newspaperId)
+    const { data: newspaper, error: newspaperError } = await supabase
+      .from("newspapers")
+      .select("file_path")
+      .eq("id", newspaperId)
       .single();
-    
-    console.log('Fetched Newspaper:', newspaper);
-    
-    if (newspaperError) {
-      console.error('Error fetching newspaper:', newspaperError);
-      throw new Error(`Newspaper not found: ${newspaperError.message}`);
-    }
-    
-    if (!newspaper?.file_path) {
-      throw new Error('Newspaper file path is missing');
-    }
-    
-    console.log('Updating status to processing...');
-    // Update status to processing
-    await supabaseClient
-      .from('newspapers')
-      .update({ status: 'processing' })
-      .eq('id', newspaperId);
-    
-    console.log('Downloading PDF from storage...');
-    // Download PDF from storage
-    const { data: fileData, error: downloadError } = await supabaseClient
-      .storage
-      .from('newspapers')
+
+    if (newspaperError || !newspaper?.file_path) throw new Error("Newspaper not found");
+
+    await supabase.from("newspapers").update({ status: "processing" }).eq("id", newspaperId);
+
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from("newspapers")
       .download(newspaper.file_path);
 
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
-      throw downloadError;
-    }
-    
-    console.log('PDF downloaded, splitting into pages...');
-    
-    // Load PDF with pdf-lib
-    const arrayBuffer = await fileData.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    if (downloadError) throw downloadError;
+
+    const pdfDoc = await PDFDocument.load(await fileData.arrayBuffer());
     const totalPages = pdfDoc.getPageCount();
-    
-    console.log(`PDF has ${totalPages} pages, splitting...`);
-    
-    // Split PDF into individual pages and upload
-    const pageFilePaths: string[] = [];
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
+
+    const allArticles: any[] = [];
+
     for (let i = 0; i < totalPages; i++) {
-      const singlePagePdf = await PDFDocument.create();
-      const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [i]);
-      singlePagePdf.addPage(copiedPage);
-      
-      const pageBytes = await singlePagePdf.save();
-      const pageBlob = new Blob([pageBytes], { type: 'application/pdf' });
-      
-      // Upload individual page
-      const pagePath = `${newspaper.file_path.replace('.pdf', '')}_page_${i + 1}.pdf`;
-      const { error: uploadError } = await supabaseClient.storage
-        .from('newspapers')
-        .upload(pagePath, pageBlob, {
-          contentType: 'application/pdf',
-          upsert: true
-        });
-      
-      if (uploadError) {
-        console.error(`Error uploading page ${i + 1}:`, uploadError);
-        throw uploadError;
-      }
-      
-      pageFilePaths.push(pagePath);
-      console.log(`Page ${i + 1}/${totalPages} uploaded`);
-    }
-    
-    console.log('All pages split and uploaded, preparing for AI processing...');
-    
-    // Get PDF as base64 for AI processing
-    const bytes = new Uint8Array(arrayBuffer);
-    let binaryString = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binaryString += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binaryString);
-    
-    console.log('PDF prepared for AI, size:', base64.length);
-    console.log('Calling AI to extract articles...');
+      console.log(`Processing page ${i + 1}/${totalPages}...`);
 
-    // Call AI to extract articles with page numbers
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not found in environment');
-      throw new Error('AI service configuration error');
-    }
-    
-    console.log('Making AI request...');
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: "text",
-                text: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation. Extract individual articles and provide comprehensive analysis for each. IMPORTANTLY, identify which PAGE NUMBER each article appears on (starting from page 1).
+      const pagePdf = await PDFDocument.create();
+      const [copiedPage] = await pagePdf.copyPages(pdfDoc, [i]);
+      pagePdf.addPage(copiedPage);
+      const pageBytes = await pagePdf.save();
+      const pageBase64 = btoa(String.fromCharCode(...new Uint8Array(pageBytes)));
 
-Available GS Topics:
-${JSON.stringify(ALL_TOPICS, null, 2)}
-
-For each article, provide:
-1. Title (concise headline)
-2. Content (full text of the article)
-3. Page Number (which page this article appears on, starting from 1)
-4. GS Papers (array of GS1, GS2, GS3, or GS4) - all relevant papers
-5. GS Syllabus Topics (array of specific topics from UPSC syllabus relevant to this article)
-6. Keywords (5-8 important UPSC-relevant terms, abbreviations, institutions)
-7. One Liner (single sentence describing what the article is about)
-8. Key Points (3-4 bullet points summarizing the article for easy recall)
-9. Prelims Card (short note format with definitions and quick facts for prelims preparation)
-10. Static Topics (array of general topic names from the list above)
-11. Static Explanation (detailed explanation connecting article to static syllabus topics, including relevant acts, institutions, and background)
-12. Is Important (boolean - mark true if article is crucial for UPSC prep)
-
-Analyze the newspaper PDF attached and extract all articles with comprehensive UPSC GS topic mapping and PAGE NUMBERS.`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`
-                }
-              }
-            ]
-          }
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_articles",
-              description: "Extract articles from newspaper with page numbers and map to GS topics",
-              parameters: {
-                type: "object",
-                properties: {
-                  articles: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string" },
-                        content: { type: "string" },
-                        page_number: { type: "integer", description: "Page number where article appears (starting from 1)" },
-                        gs_papers: { 
-                          type: "array", 
-                          items: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
-                          description: "Array of relevant GS Papers"
-                        },
-                        gs_syllabus_topics: { type: "array", items: { type: "string" } },
-                        keywords: { type: "array", items: { type: "string" } },
-                        one_liner: { type: "string" },
-                        key_points: { type: "string" },
-                        prelims_card: { type: "string" },
-                        static_topics: { type: "array", items: { type: "string" } },
-                        static_explanation: { type: "string" },
-                        is_important: { type: "boolean" }
-                      },
-                      required: ["title", "content", "page_number", "gs_papers", "gs_syllabus_topics", "keywords", "one_liner", "key_points", "static_topics"]
-                    }
-                  }
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation.`,
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Analyze page ${i + 1} of a newspaper. Extract all UPSC-relevant articles with analysis. Use these GS topics:\n${JSON.stringify(
+                    ALL_TOPICS,
+                    null,
+                    2
+                  )}`,
                 },
-                required: ["articles"]
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "extract_articles" } }
-      }),
-    });
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:application/pdf;base64,${pageBase64}`,
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_articles",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    articles: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string" },
+                          content: { type: "string" },
+                          gs_papers: {
+                            type: "array",
+                            items: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
+                          },
+                          gs_syllabus_topics: { type: "array", items: { type: "string" } },
+                          keywords: { type: "array", items: { type: "string" } },
+                          one_liner: { type: "string" },
+                          key_points: { type: "string" },
+                          prelims_card: { type: "string" },
+                          static_topics: { type: "array", items: { type: "string" } },
+                          static_explanation: { type: "string" },
+                          is_important: { type: "boolean" },
+                        },
+                        required: ["title", "content"],
+                      },
+                    },
+                  },
+                  required: ["articles"],
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "extract_articles" } },
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
+      if (!aiResponse.ok) throw new Error(`AI error on page ${i + 1}: ${aiResponse.status}`);
 
-    const aiData = await aiResponse.json();
-    console.log('AI response received');
+      const aiData = await aiResponse.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) continue;
 
-    // Extract articles from tool call
-    const toolCall = aiData.choices[0].message.tool_calls?.[0];
-    if (!toolCall) {
-      throw new Error('No tool call in AI response');
-    }
+      let extractedData;
+      try {
+        extractedData = JSON.parse(toolCall.function.arguments);
+      } catch {
+        console.warn(`Failed to parse AI response for page ${i + 1}`);
+        continue;
+      }
 
-    const extractedData = JSON.parse(toolCall.function.arguments);
-    const articles = extractedData.articles;
-
-    console.log(`Extracted ${articles.length} articles`);
-
-    // Insert articles into database with page information
-    const articlesWithNewspaperId = articles.map((article: any) => {
-      const pageNumber = article.page_number || 1;
-      const pageFilePath = pageFilePaths[pageNumber - 1] || pageFilePaths[0];
-      
-      return {
+      const pageArticles = (extractedData.articles || []).map((a: any) => ({
+        ...a,
+        page_number: i + 1,
         newspaper_id: newspaperId,
-        title: article.title,
-        content: article.content,
-        page_number: pageNumber,
-        page_file_path: pageFilePath,
-        gs_papers: article.gs_papers || [],
-        gs_syllabus_topics: article.gs_syllabus_topics || [],
-        keywords: article.keywords || [],
-        one_liner: article.one_liner || null,
-        key_points: article.key_points || null,
-        prelims_card: article.prelims_card || null,
-        static_topics: article.static_topics || [],
-        static_explanation: article.static_explanation || null,
-        is_important: article.is_important || false,
-        is_revised: false
-      };
-    });
+      }));
 
-    const { error: insertError } = await supabaseClient
-      .from('articles')
-      .insert(articlesWithNewspaperId);
-
-    if (insertError) {
-      console.error('Error inserting articles:', insertError);
-      throw insertError;
+      allArticles.push(...pageArticles);
+      console.log(`→ Page ${i + 1}: extracted ${pageArticles.length} articles`);
     }
 
-    // Update newspaper status to completed
-    await supabaseClient
-      .from('newspapers')
-      .update({ status: 'completed' })
-      .eq('id', newspaperId);
+    if (allArticles.length > 0) {
+      const { error: insertError } = await supabase.from("articles").insert(allArticles);
+      if (insertError) throw insertError;
+    }
 
-    console.log('Processing completed successfully');
+    await supabase.from("newspapers").update({ status: "completed" }).eq("id", newspaperId);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        articlesCount: articles.length,
-        pagesCount: totalPages,
-        message: `Successfully extracted ${articles.length} articles from ${totalPages} pages` 
+      JSON.stringify({
+        success: true,
+        message: `Processed ${totalPages} pages, extracted ${allArticles.length} articles`,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error) {
-    console.error('Error processing newspaper:', error);
-    console.error('Error details:', error instanceof Error ? error.stack : 'No stack trace');
-    
-    // Update newspaper status to failed
-    try {
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-      
-      const requestBody = await req.json().catch(() => ({}));
-      if (requestBody.newspaperId) {
-        await supabaseClient
-          .from('newspapers')
-          .update({ status: 'failed' })
-          .eq('id', requestBody.newspaperId);
-      }
-    } catch (updateError) {
-      console.error('Failed to update newspaper status:', updateError);
-    }
-    
+    console.error("Error processing newspaper:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
