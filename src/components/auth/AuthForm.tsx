@@ -67,7 +67,7 @@ const AuthForm = () => {
         title: "Account created!",
         description: "You can now sign in with your credentials.",
       });
-      navigate("/dashboard");
+      navigate("/");
     }
   };
 
@@ -107,7 +107,7 @@ const AuthForm = () => {
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-      navigate("/dashboard");
+      navigate("/");
     }
   };
 

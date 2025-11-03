@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Loader2, Newspaper, FileText, Sparkles, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ArticlePDFPreview from "@/components/ArticlePDFPreview";
 
 const AIAnalysis = () => {
   const { newspaperId } = useParams();
@@ -76,7 +77,7 @@ const AIAnalysis = () => {
           <div className="flex h-14 md:h-16 items-center justify-between gap-2">
             <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
               <Button variant="ghost" size="icon" className="flex-shrink-0" asChild>
-                <Link to="/dashboard">
+                <Link to="/newspapers">
                   <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
                 </Link>
               </Button>
@@ -104,8 +105,8 @@ const AIAnalysis = () => {
                 <p className="text-muted-foreground mb-4">
                   The AI analysis for this newspaper is being processed
                 </p>
-                <Button variant="accent" onClick={() => navigate("/dashboard")}>
-                  Back to Dashboard
+                <Button variant="accent" onClick={() => navigate("/newspapers")}>
+                  Back to Newspapers
                 </Button>
               </CardContent>
             </Card>
@@ -187,11 +188,12 @@ const AIAnalysis = () => {
                     </CardHeader>
                     <CardContent className="p-4 md:p-6">
                       <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
+                        <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 h-auto">
                           <TabsTrigger value="overview" className="text-xs md:text-sm py-2">Overview</TabsTrigger>
                           <TabsTrigger value="keypoints" className="text-xs md:text-sm py-2">Key Points</TabsTrigger>
                           <TabsTrigger value="prelims" className="text-xs md:text-sm py-2">Prelims</TabsTrigger>
                           <TabsTrigger value="static" className="text-xs md:text-sm py-2">Static</TabsTrigger>
+                          <TabsTrigger value="preview" className="text-xs md:text-sm py-2">PDF</TabsTrigger>
                         </TabsList>
                         
                         <TabsContent value="overview" className="space-y-3 md:space-y-4 mt-4">
@@ -273,6 +275,23 @@ const AIAnalysis = () => {
                                 {selectedArticle.static_explanation || 'No static syllabus explanation available'}
                               </div>
                             </div>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="preview" className="mt-4">
+                          <div className="space-y-3">
+                            <h4 className="text-sm md:text-base font-semibold mb-2 flex items-center gap-2">
+                              <span className="text-primary">📄</span> Article Page Preview
+                              {selectedArticle.page_number && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Page {selectedArticle.page_number}
+                                </Badge>
+                              )}
+                            </h4>
+                            <ArticlePDFPreview 
+                              pageFilePath={selectedArticle.page_file_path}
+                              pageNumber={selectedArticle.page_number}
+                            />
                           </div>
                         </TabsContent>
                       </Tabs>

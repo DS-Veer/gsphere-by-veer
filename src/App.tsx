@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Upload from "./pages/Upload";
+import Newspapers from "./pages/Newspapers";
 import Dashboard from "./pages/Dashboard";
 import AIAnalysis from "./pages/AIAnalysis";
 import PaperMapping from "./pages/PaperMapping";
@@ -23,6 +25,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/upload" element={<Upload />} />
+          <Route path="/newspapers" element={<Newspapers />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai-analysis/:newspaperId" element={<AIAnalysis />} />
           <Route path="/paper-mapping" element={<PaperMapping />} />

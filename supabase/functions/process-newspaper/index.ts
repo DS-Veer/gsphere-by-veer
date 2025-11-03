@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,7 +86,7 @@ const GS_TOPICS = {
     "Border Management",
     "Terrorism",
     "Cyber Security",
-    "Money Laundering",
+    "Money Launtering",
     "Defense and Security"
   ],
   "GS4": [
@@ -137,46 +138,83 @@ serve(async (req) => {
     }
 
     // Get newspaper details
-    const { data: newspaperFilePath, error: newspaperError } = await supabaseClient
+    const { data: newspaper, error: newspaperError } = await supabaseClient
       .from('newspapers')
-      .select('file_path')
+      .select('file_path, user_id')
       .eq('id', newspaperId)
       .single();
-    console.log('Fetched Newspaper File Path:', newspaperFilePath)
+    
+    console.log('Fetched Newspaper:', newspaper);
     
     if (newspaperError) {
       console.error('Error fetching newspaper:', newspaperError);
       throw new Error(`Newspaper not found: ${newspaperError.message}`);
     }
     
-    if (!newspaperFilePath?.file_path) {
+    if (!newspaper?.file_path) {
       throw new Error('Newspaper file path is missing');
     }
-    console.log('Updating status to processing..')
+    
+    console.log('Updating status to processing...');
     // Update status to processing
     await supabaseClient
       .from('newspapers')
       .update({ status: 'processing' })
       .eq('id', newspaperId);
-    console.log('Downloading PDF from storage')
+    
+    console.log('Downloading PDF from storage...');
     // Download PDF from storage
-    const { data: fileData, error: downloadError} = await supabaseClient
+    const { data: fileData, error: downloadError } = await supabaseClient
       .storage
       .from('newspapers')
-      .download(newspaperFilePath.file_path);
+      .download(newspaper.file_path);
 
     if (downloadError) {
       console.error('Error downloading file:', downloadError);
       throw downloadError;
     }
     
-    console.log('PDF downloaded, preparing for AI processing...');
+    console.log('PDF downloaded, splitting into pages...');
     
-    // Get PDF as array buffer for AI processing
+    // Load PDF with pdf-lib
     const arrayBuffer = await fileData.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const totalPages = pdfDoc.getPageCount();
     
-    // Convert to binary string for base64 encoding
+    console.log(`PDF has ${totalPages} pages, splitting...`);
+    
+    // Split PDF into individual pages and upload
+    const pageFilePaths: string[] = [];
+    for (let i = 0; i < totalPages; i++) {
+      const singlePagePdf = await PDFDocument.create();
+      const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [i]);
+      singlePagePdf.addPage(copiedPage);
+      
+      const pageBytes = await singlePagePdf.save();
+      const pageBlob = new Blob([pageBytes], { type: 'application/pdf' });
+      
+      // Upload individual page
+      const pagePath = `${newspaper.file_path.replace('.pdf', '')}_page_${i + 1}.pdf`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from('newspapers')
+        .upload(pagePath, pageBlob, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+      
+      if (uploadError) {
+        console.error(`Error uploading page ${i + 1}:`, uploadError);
+        throw uploadError;
+      }
+      
+      pageFilePaths.push(pagePath);
+      console.log(`Page ${i + 1}/${totalPages} uploaded`);
+    }
+    
+    console.log('All pages split and uploaded, preparing for AI processing...');
+    
+    // Get PDF as base64 for AI processing
+    const bytes = new Uint8Array(arrayBuffer);
     let binaryString = '';
     for (let i = 0; i < bytes.length; i++) {
       binaryString += String.fromCharCode(bytes[i]);
@@ -184,10 +222,9 @@ serve(async (req) => {
     const base64 = btoa(binaryString);
     
     console.log('PDF prepared for AI, size:', base64.length);
-
     console.log('Calling AI to extract articles...');
 
-    // Call AI to extract articles
+    // Call AI to extract articles with page numbers
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -210,7 +247,7 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation. Extract individual articles and provide comprehensive analysis for each.
+                text: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation. Extract individual articles and provide comprehensive analysis for each. IMPORTANTLY, identify which PAGE NUMBER each article appears on (starting from page 1).
 
 Available GS Topics:
 ${JSON.stringify(ALL_TOPICS, null, 2)}
@@ -218,17 +255,18 @@ ${JSON.stringify(ALL_TOPICS, null, 2)}
 For each article, provide:
 1. Title (concise headline)
 2. Content (full text of the article)
-3. GS Papers (array of GS1, GS2, GS3, or GS4) - all relevant papers
-4. GS Syllabus Topics (array of specific topics from UPSC syllabus relevant to this article)
-5. Keywords (5-8 important UPSC-relevant terms, abbreviations, institutions)
-6. One Liner (single sentence describing what the article is about)
-7. Key Points (3-4 bullet points summarizing the article for easy recall)
-8. Prelims Card (short note format with definitions and quick facts for prelims preparation)
-9. Static Topics (array of general topic names from the list above)
-10. Static Explanation (detailed explanation connecting article to static syllabus topics, including relevant acts, institutions, and background)
-11. Is Important (boolean - mark true if article is crucial for UPSC prep)
+3. Page Number (which page this article appears on, starting from 1)
+4. GS Papers (array of GS1, GS2, GS3, or GS4) - all relevant papers
+5. GS Syllabus Topics (array of specific topics from UPSC syllabus relevant to this article)
+6. Keywords (5-8 important UPSC-relevant terms, abbreviations, institutions)
+7. One Liner (single sentence describing what the article is about)
+8. Key Points (3-4 bullet points summarizing the article for easy recall)
+9. Prelims Card (short note format with definitions and quick facts for prelims preparation)
+10. Static Topics (array of general topic names from the list above)
+11. Static Explanation (detailed explanation connecting article to static syllabus topics, including relevant acts, institutions, and background)
+12. Is Important (boolean - mark true if article is crucial for UPSC prep)
 
-Analyze the newspaper PDF attached and extract all articles with comprehensive UPSC GS topic mapping.`
+Analyze the newspaper PDF attached and extract all articles with comprehensive UPSC GS topic mapping and PAGE NUMBERS.`
               },
               {
                 type: "image_url",
@@ -244,7 +282,7 @@ Analyze the newspaper PDF attached and extract all articles with comprehensive U
             type: "function",
             function: {
               name: "extract_articles",
-              description: "Extract articles from newspaper and map to GS topics",
+              description: "Extract articles from newspaper with page numbers and map to GS topics",
               parameters: {
                 type: "object",
                 properties: {
@@ -255,6 +293,7 @@ Analyze the newspaper PDF attached and extract all articles with comprehensive U
                       properties: {
                         title: { type: "string" },
                         content: { type: "string" },
+                        page_number: { type: "integer", description: "Page number where article appears (starting from 1)" },
                         gs_papers: { 
                           type: "array", 
                           items: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
@@ -269,7 +308,7 @@ Analyze the newspaper PDF attached and extract all articles with comprehensive U
                         static_explanation: { type: "string" },
                         is_important: { type: "boolean" }
                       },
-                      required: ["title", "content", "gs_papers", "gs_syllabus_topics", "keywords", "one_liner", "key_points", "static_topics"]
+                      required: ["title", "content", "page_number", "gs_papers", "gs_syllabus_topics", "keywords", "one_liner", "key_points", "static_topics"]
                     }
                   }
                 },
@@ -302,22 +341,29 @@ Analyze the newspaper PDF attached and extract all articles with comprehensive U
 
     console.log(`Extracted ${articles.length} articles`);
 
-    // Insert articles into database
-    const articlesWithNewspaperId = articles.map((article: any) => ({
-      newspaper_id: newspaperId,
-      title: article.title,
-      content: article.content,
-      gs_papers: article.gs_papers || [],
-      gs_syllabus_topics: article.gs_syllabus_topics || [],
-      keywords: article.keywords || [],
-      one_liner: article.one_liner || null,
-      key_points: article.key_points || null,
-      prelims_card: article.prelims_card || null,
-      static_topics: article.static_topics || [],
-      static_explanation: article.static_explanation || null,
-      is_important: article.is_important || false,
-      is_revised: false
-    }));
+    // Insert articles into database with page information
+    const articlesWithNewspaperId = articles.map((article: any) => {
+      const pageNumber = article.page_number || 1;
+      const pageFilePath = pageFilePaths[pageNumber - 1] || pageFilePaths[0];
+      
+      return {
+        newspaper_id: newspaperId,
+        title: article.title,
+        content: article.content,
+        page_number: pageNumber,
+        page_file_path: pageFilePath,
+        gs_papers: article.gs_papers || [],
+        gs_syllabus_topics: article.gs_syllabus_topics || [],
+        keywords: article.keywords || [],
+        one_liner: article.one_liner || null,
+        key_points: article.key_points || null,
+        prelims_card: article.prelims_card || null,
+        static_topics: article.static_topics || [],
+        static_explanation: article.static_explanation || null,
+        is_important: article.is_important || false,
+        is_revised: false
+      };
+    });
 
     const { error: insertError } = await supabaseClient
       .from('articles')
@@ -340,7 +386,8 @@ Analyze the newspaper PDF attached and extract all articles with comprehensive U
       JSON.stringify({ 
         success: true, 
         articlesCount: articles.length,
-        message: `Successfully extracted ${articles.length} articles` 
+        pagesCount: totalPages,
+        message: `Successfully extracted ${articles.length} articles from ${totalPages} pages` 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -370,8 +417,7 @@ Analyze the newspaper PDF attached and extract all articles with comprehensive U
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        details: error instanceof Error ? error.stack : undefined
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { 
         status: 500, 

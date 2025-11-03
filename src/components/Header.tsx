@@ -43,25 +43,33 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Features
-            </a>
-            <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              How It Works
-            </a>
+            {isLoggedIn ? (
+              <>
+                <a href="/upload" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  Upload
+                </a>
+                <a href="/newspapers" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  My Newspapers
+                </a>
+              </>
+            ) : (
+              <>
+                <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  Features
+                </a>
+                <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  How It Works
+                </a>
+              </>
+            )}
           </nav>
 
           {/* CTA Buttons */}
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
-              <>
-                <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-                  Dashboard
-                </Button>
-                <Button variant="outline" onClick={handleSignOut}>
-                  Sign Out
-                </Button>
-              </>
+              <Button variant="outline" onClick={handleSignOut}>
+                Sign Out
+              </Button>
             ) : (
               <>
                 <Button variant="ghost" onClick={() => navigate("/auth")}>

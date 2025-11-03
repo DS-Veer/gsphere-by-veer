@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Upload, Newspaper } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -48,14 +48,24 @@ const Hero = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
             {isLoggedIn ? (
-              <Button 
-                size="lg" 
-                className="gap-2" 
-                onClick={() => navigate("/dashboard")}
-              >
-                Go to Dashboard
-                <ArrowRight className="w-4 h-4" />
-              </Button>
+              <>
+                <Button 
+                  size="lg" 
+                  className="gap-2" 
+                  onClick={() => navigate("/upload")}
+                >
+                  <Upload className="w-5 h-5" />
+                  Upload Newspaper
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={() => navigate("/newspapers")}
+                >
+                  <Newspaper className="w-5 h-5 mr-2" />
+                  My Newspapers
+                </Button>
+              </>
             ) : (
               <>
                 <Button 

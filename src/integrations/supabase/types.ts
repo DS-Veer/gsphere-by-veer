@@ -27,6 +27,8 @@ export type Database = {
           keywords: Json | null
           newspaper_id: string
           one_liner: string | null
+          page_file_path: string | null
+          page_number: number | null
           prelims_card: string | null
           static_explanation: string | null
           static_topics: string[] | null
@@ -47,6 +49,8 @@ export type Database = {
           keywords?: Json | null
           newspaper_id: string
           one_liner?: string | null
+          page_file_path?: string | null
+          page_number?: number | null
           prelims_card?: string | null
           static_explanation?: string | null
           static_topics?: string[] | null
@@ -67,6 +71,8 @@ export type Database = {
           keywords?: Json | null
           newspaper_id?: string
           one_liner?: string | null
+          page_file_path?: string | null
+          page_number?: number | null
           prelims_card?: string | null
           static_explanation?: string | null
           static_topics?: string[] | null
