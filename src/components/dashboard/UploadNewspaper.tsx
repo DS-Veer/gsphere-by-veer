@@ -73,14 +73,18 @@ const UploadNewspaper = ({ userId }: UploadNewspaperProps) => {
       }
 
       // Create database record
-      const { error: dbError } = await supabase.from("newspapers").insert({
-        user_id: userId,
-        upload_date: format(date, "yyyy-MM-dd"),
-        file_path: filePath,
-        file_name: file.name,
-        file_size: file.size,
-        status: "uploaded",
-      });
+      const { data: newspaper, error: dbError } = await supabase
+        .from("newspapers")
+        .insert({
+          user_id: userId,
+          upload_date: format(date, "yyyy-MM-dd"),
+          file_path: filePath,
+          file_name: file.name,
+          file_size: file.size,
+          status: "uploaded",
+        })
+        .select()
+        .single();
 
       if (dbError) {
         // Clean up uploaded file if database insert fails
@@ -88,10 +92,29 @@ const UploadNewspaper = ({ userId }: UploadNewspaperProps) => {
         throw dbError;
       }
 
+      // Split PDF into pages immediately after upload
       toast({
         title: "Upload successful!",
-        description: "Your newspaper has been uploaded and is ready for analysis.",
+        description: "Splitting PDF into pages...",
       });
+
+      const { error: splitError } = await supabase.functions.invoke("split-newspaper", {
+        body: { newspaperId: newspaper.id },
+      });
+
+      if (splitError) {
+        console.error("Error splitting PDF:", splitError);
+        toast({
+          variant: "destructive",
+          title: "PDF uploaded but failed to split",
+          description: "You can still process the newspaper later.",
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Your newspaper has been uploaded and split into pages.",
+        });
+      }
 
       // Reset form
       setFile(null);

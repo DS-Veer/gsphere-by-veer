@@ -2,3 +2,6 @@ project_id = "kanzzugutamqvtddqknj"
 
 [functions.process-newspaper]
 verify_jwt = false
+
+[functions.split-newspaper]
+verify_jwt = false

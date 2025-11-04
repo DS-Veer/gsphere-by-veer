@@ -131,7 +131,7 @@ serve(async (req) => {
 
     const { data: newspaper, error: newspaperError } = await supabase
       .from("newspapers")
-      .select("file_path")
+      .select("file_path, user_id")
       .eq("id", newspaperId)
       .single();
 
@@ -139,14 +139,19 @@ serve(async (req) => {
 
     await supabase.from("newspapers").update({ status: "processing" }).eq("id", newspaperId);
 
-    const { data: fileData, error: downloadError } = await supabase.storage
+    // List all page files for this newspaper
+    const { data: pageFiles, error: listError } = await supabase.storage
       .from("newspapers")
-      .download(newspaper.file_path);
+      .list(`${newspaper.user_id}/pages`, {
+        search: `${newspaperId}_page_`,
+      });
 
-    if (downloadError) throw downloadError;
+    if (listError || !pageFiles || pageFiles.length === 0) {
+      throw new Error("No split pages found. Please upload the newspaper again.");
+    }
 
-    const pdfDoc = await PDFDocument.load(await fileData.arrayBuffer());
-    const totalPages = pdfDoc.getPageCount();
+    const totalPages = pageFiles.length;
+    console.log(`Found ${totalPages} pages to process`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
@@ -156,10 +161,19 @@ serve(async (req) => {
     for (let i = 0; i < totalPages; i++) {
       console.log(`Processing page ${i + 1}/${totalPages}...`);
 
-      const pagePdf = await PDFDocument.create();
-      const [copiedPage] = await pagePdf.copyPages(pdfDoc, [i]);
-      pagePdf.addPage(copiedPage);
-      const pageBytes = await pagePdf.save();
+      const pageFileName = `${newspaper.user_id}/pages/${newspaperId}_page_${i + 1}.pdf`;
+      
+      // Download the already-split page
+      const { data: pageData, error: pageDownloadError } = await supabase.storage
+        .from("newspapers")
+        .download(pageFileName);
+
+      if (pageDownloadError) {
+        console.error(`Error downloading page ${i + 1}:`, pageDownloadError);
+        continue;
+      }
+
+      const pageBytes = await pageData.arrayBuffer();
       const pageBase64 = btoa(String.fromCharCode(...new Uint8Array(pageBytes)));
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -254,6 +268,7 @@ serve(async (req) => {
         ...a,
         page_number: i + 1,
         newspaper_id: newspaperId,
+        page_file_path: pageFileName,
       }));
 
       allArticles.push(...pageArticles);
@@ -276,8 +291,26 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error processing newspaper:", error);
+    
+    // Update status to failed if we have newspaperId
+    try {
+      const body = await req.clone().json();
+      if (body.newspaperId) {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        );
+        await supabase
+          .from("newspapers")
+          .update({ status: "failed", error_message: error instanceof Error ? error.message : String(error) })
+          .eq("id", body.newspaperId);
+      }
+    } catch (parseError) {
+      console.error("Could not update newspaper status:", parseError);
+    }
+    
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
