@@ -11,23 +11,59 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { newspaperId } = await req.json();
     console.log("Splitting newspaper:", newspaperId);
 
-    const supabase = createClient(
+    // Create client with user's auth token to verify ownership
+    const userSupabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: newspaper, error: newspaperError } = await supabase
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify newspaper ownership
+    const { data: newspaper, error: newspaperError } = await userSupabase
       .from("newspapers")
       .select("file_path, user_id")
       .eq("id", newspaperId)
       .single();
 
     if (newspaperError || !newspaper?.file_path) {
-      throw new Error("Newspaper not found");
+      return new Response(
+        JSON.stringify({ success: false, error: 'Newspaper not found' }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    if (newspaper.user_id !== user.id) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use service role for storage operations
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
     console.log("Downloading PDF from storage...");
     const { data: fileData, error: downloadError } = await supabase.storage
