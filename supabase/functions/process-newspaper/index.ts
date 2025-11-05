@@ -180,7 +180,7 @@ serve(async (req) => {
     // List all page files for this newspaper
     const { data: pageFiles, error: listError } = await supabase.storage
       .from("newspapers")
-      .list(`${newspaper.user_id}/pages`, {
+      .list(`${newspaper.user_id}`, {
         search: `${newspaperId}_page_`,
       });
 
@@ -199,7 +199,7 @@ serve(async (req) => {
     for (let i = 0; i < totalPages; i++) {
       console.log(`Processing page ${i + 1}/${totalPages}...`);
 
-      const pageFileName = `${newspaper.user_id}/pages/${newspaperId}_page_${i + 1}.pdf`;
+      const pageFileName = `${newspaper.user_id}/${newspaperId}_page_${i + 1}.pdf`;
       
       // Download the already-split page
       const { data: pageData, error: pageDownloadError } = await supabase.storage
