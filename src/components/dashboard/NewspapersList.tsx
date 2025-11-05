@@ -16,6 +16,7 @@ interface Newspaper {
   file_size: number;
   status: string;
   created_at: string;
+  total_pages: number;
 }
 
 interface NewspapersListProps {
@@ -84,19 +85,6 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
         .eq("id", newspaper.id);
 
       if (dbError) throw dbError;
-      
-      const paths = [];
-      for (let i = 0; i < totalPages; i++) {
-        paths.push(`${newspaper.user_id}/pages/${newspaperId}_page_${i + 1}.pdf`);
-      }
-      
-      const { error } = await supabaseClient
-        .storage
-        .from("newspapers")
-        .remove(paths);
-      
-      if (error) console.error("Error deleting pages:", error);
-      else console.log("Deleted all page files successfully.");
 
       toast({
         title: "Deleted successfully",

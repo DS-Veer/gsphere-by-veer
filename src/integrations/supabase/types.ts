@@ -100,6 +100,7 @@ export type Database = {
           file_size: number | null
           id: string
           status: Database["public"]["Enums"]["newspaper_status"] | null
+          total_pages: number | null
           updated_at: string | null
           upload_date: string
           user_id: string
@@ -112,6 +113,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           status?: Database["public"]["Enums"]["newspaper_status"] | null
+          total_pages?: number | null
           updated_at?: string | null
           upload_date: string
           user_id: string
@@ -124,6 +126,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           status?: Database["public"]["Enums"]["newspaper_status"] | null
+          total_pages?: number | null
           updated_at?: string | null
           upload_date?: string
           user_id?: string
