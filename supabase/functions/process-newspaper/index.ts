@@ -1,13 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ======= UPSC Topics ===========
 const GS_TOPICS = {
   GS1: [
     "Indian Heritage and Culture",
@@ -117,79 +115,67 @@ const ALL_TOPICS = [
   ...GS_TOPICS.GS4.map((t) => ({ topic: t, paper: "GS4" })),
 ];
 
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Validate authentication
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader)
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
 
     const { newspaperId } = await req.json();
     console.log("Processing newspaper:", newspaperId);
 
-    // Create client with user's auth token to verify ownership
+    // Auth client (user-level)
     const userSupabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
     const { data: { user }, error: authError } = await userSupabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (authError || !user)
+      return new Response(JSON.stringify({ success: false, error: "Invalid authentication" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
 
-    // Verify newspaper ownership
+    // Get newspaper info
     const { data: newspaper, error: newspaperError } = await userSupabase
       .from("newspapers")
-      .select("file_path, user_id")
+      .select("file_path, user_id, total_pages")
       .eq("id", newspaperId)
       .single();
 
-    if (newspaperError || !newspaper?.file_path) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Newspaper not found' }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (newspaperError || !newspaper)
+      return new Response(JSON.stringify({ success: false, error: "Newspaper not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
 
-    if (newspaper.user_id !== user.id) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Unauthorized' }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (newspaper.user_id !== user.id)
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
 
-    // Use service role for AI processing operations
+    // Service-role client for storage + DB
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     await supabase.from("newspapers").update({ status: "processing" }).eq("id", newspaperId);
 
-    // List all page files for this newspaper
-    const { data: pageFiles, error: listError } = await supabase.storage
-      .from("newspapers")
-      .list(`${newspaper.user_id}`, {
-        search: `${newspaperId}_page_`,
-      });
+    const totalPages = newspaper.total_pages;
+    if (!totalPages || totalPages <= 0)
+      throw new Error("Total pages missing — please re-split this newspaper.");
 
-    if (listError || !pageFiles || pageFiles.length === 0) {
-      throw new Error("No split pages found. Please upload the newspaper again.");
-    }
-
-    const totalPages = pageFiles.length;
-    console.log(`Found ${totalPages} pages to process`);
+    console.log(`Processing ${totalPages} pages for user ${user.id}`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
@@ -197,17 +183,15 @@ serve(async (req) => {
     const allArticles: any[] = [];
 
     for (let i = 0; i < totalPages; i++) {
-      console.log(`Processing page ${i + 1}/${totalPages}...`);
+      const pageFileName = `${newspaper.user_id}/pages/${newspaperId}_page_${i + 1}.pdf`;
+      console.log(`→ Processing: ${pageFileName}`);
 
-      const pageFileName = `${newspaper.user_id}/${newspaperId}_page_${i + 1}.pdf`;
-      
-      // Download the already-split page
-      const { data: pageData, error: pageDownloadError } = await supabase.storage
+      const { data: pageData, error: downloadError } = await supabase.storage
         .from("newspapers")
         .download(pageFileName);
 
-      if (pageDownloadError) {
-        console.error(`Error downloading page ${i + 1}:`, pageDownloadError);
+      if (downloadError) {
+        console.warn(`⚠️ Skipping page ${i + 1}: not found`);
         continue;
       }
 
@@ -232,17 +216,11 @@ serve(async (req) => {
               content: [
                 {
                   type: "text",
-                  text: `Analyze page ${i + 1} of a newspaper. Extract all UPSC-relevant articles with analysis. Use these GS topics:\n${JSON.stringify(
-                    ALL_TOPICS,
-                    null,
-                    2
-                  )}`,
+                  text: `Analyze page ${i + 1} of a newspaper. Extract all UPSC-relevant articles using GS topics:\n${JSON.stringify(ALL_TOPICS, null, 2)}`,
                 },
                 {
                   type: "image_url",
-                  image_url: {
-                    url: `data:application/pdf;base64,${pageBase64}`,
-                  },
+                  image_url: { url: `data:application/pdf;base64,${pageBase64}` },
                 },
               ],
             },
@@ -262,10 +240,7 @@ serve(async (req) => {
                         properties: {
                           title: { type: "string" },
                           content: { type: "string" },
-                          gs_papers: {
-                            type: "array",
-                            items: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
-                          },
+                          gs_papers: { type: "array", items: { type: "string" } },
                           gs_syllabus_topics: { type: "array", items: { type: "string" } },
                           keywords: { type: "array", items: { type: "string" } },
                           one_liner: { type: "string" },
@@ -288,32 +263,37 @@ serve(async (req) => {
         }),
       });
 
-      if (!aiResponse.ok) throw new Error(`AI error on page ${i + 1}: ${aiResponse.status}`);
+      if (!aiResponse.ok) {
+        console.error(`AI failed on page ${i + 1}: ${aiResponse.status}`);
+        continue;
+      }
 
       const aiData = await aiResponse.json();
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       if (!toolCall) continue;
 
-      let extractedData;
+      let extracted;
       try {
-        extractedData = JSON.parse(toolCall.function.arguments);
+        extracted = JSON.parse(toolCall.function.arguments);
       } catch {
-        console.warn(`Failed to parse AI response for page ${i + 1}`);
+        console.warn(`❌ Failed to parse AI JSON for page ${i + 1}`);
         continue;
       }
 
-      const pageArticles = (extractedData.articles || []).map((a: any) => ({
+      const pageArticles = (extracted.articles || []).map((a: any) => ({
         ...a,
         page_number: i + 1,
         newspaper_id: newspaperId,
         page_file_path: pageFileName,
       }));
 
-      allArticles.push(...pageArticles);
-      console.log(`→ Page ${i + 1}: extracted ${pageArticles.length} articles`);
+      if (pageArticles.length) {
+        allArticles.push(...pageArticles);
+        console.log(`✅ Page ${i + 1}: ${pageArticles.length} articles extracted`);
+      }
     }
 
-    if (allArticles.length > 0) {
+    if (allArticles.length) {
       const { error: insertError } = await supabase.from("articles").insert(allArticles);
       if (insertError) throw insertError;
     }
@@ -323,32 +303,37 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Processed ${totalPages} pages, extracted ${allArticles.length} articles`,
+        message: `Processed ${totalPages} pages, extracted ${allArticles.length} articles.`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error processing newspaper:", error);
-    
-    // Update status to failed if we have newspaperId
+
     try {
       const body = await req.clone().json();
       if (body.newspaperId) {
         const supabase = createClient(
-          Deno.env.get("SUPABASE_URL") ?? "",
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
         await supabase
           .from("newspapers")
-          .update({ status: "failed", error_message: error instanceof Error ? error.message : String(error) })
+          .update({
+            status: "failed",
+            error_message: error instanceof Error ? error.message : String(error),
+          })
           .eq("id", body.newspaperId);
       }
-    } catch (parseError) {
-      console.error("Could not update newspaper status:", parseError);
+    } catch (e) {
+      console.error("Failed to update error status:", e);
     }
-    
+
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
