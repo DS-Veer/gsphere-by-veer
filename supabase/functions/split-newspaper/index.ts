@@ -99,6 +99,17 @@ serve(async (req) => {
 
       console.log(`Page ${i + 1}/${totalPages} uploaded`);
     }
+    
+    // ✅ Update total_pages in DB
+    const { error: updateError } = await supabase
+      .from("newspapers")
+      .update({ total_pages: totalPages })
+      .eq("id", newspaperId);
+
+    if (updateError) {
+      console.error("Error updating total_pages:", updateError);
+      throw updateError;
+    }
 
     console.log("All pages split and uploaded successfully");
 
