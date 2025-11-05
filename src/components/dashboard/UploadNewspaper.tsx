@@ -82,6 +82,7 @@ const UploadNewspaper = ({ userId }: UploadNewspaperProps) => {
           file_name: file.name,
           file_size: file.size,
           status: "uploaded",
+          total_pages: 0,
         })
         .select()
         .single();
