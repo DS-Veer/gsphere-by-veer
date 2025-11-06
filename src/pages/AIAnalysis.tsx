@@ -24,6 +24,26 @@ const AIAnalysis = () => {
     // Auto-select first article if available
   }, [newspaperId]);
 
+  // Realtime: append new articles as they are processed
+  useEffect(() => {
+    if (!newspaperId) return;
+    const channel = supabase
+      .channel('articles-realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'articles',
+        filter: `newspaper_id=eq.${newspaperId}`,
+      }, (payload) => {
+        setArticles((prev) => [payload.new as any, ...prev]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [newspaperId]);
+
   useEffect(() => {
     if (articles.length > 0 && !selectedArticle) {
       setSelectedArticle(articles[0]);

@@ -71,14 +71,7 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
 
     setDeletingId(newspaper.id);
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from("newspapers")
-        .remove([newspaper.file_path]);
-
-      if (storageError) throw storageError;
-
-      // Delete from database
+      // Delete from database (storage cleanup handled via DB trigger)
       const { error: dbError } = await supabase
         .from("newspapers")
         .delete()
@@ -86,20 +79,6 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
 
       if (dbError) throw dbError;
 
-      const paths = [];
-      for (let i = 0; i < totalPages; i++) {
-        paths.push(`${newspaper.user_id}/pages/${newspaperId}_page_${i + 1}.pdf`);
-      }
-      
-      const { error } = await supabaseClient
-        .storage
-        .from("newspapers")
-        .remove(paths);
-      
-      if (error) console.error("Error deleting pages:", error);
-      else console.log("Deleted all page files successfully.");
-
-      
       toast({
         title: "Deleted successfully",
         description: "Newspaper has been removed.",
