@@ -93,10 +93,10 @@ const UploadNewspaper = ({ userId }: UploadNewspaperProps) => {
         throw dbError;
       }
 
-      // Split PDF into pages immediately after upload
+      // Split PDF into pages and auto-start processing
       toast({
         title: "Upload successful!",
-        description: "Splitting PDF into pages...",
+        description: "Splitting PDF and starting AI analysis...",
       });
 
       const { error: splitError } = await supabase.functions.invoke("split-newspaper", {
@@ -108,12 +108,12 @@ const UploadNewspaper = ({ userId }: UploadNewspaperProps) => {
         toast({
           variant: "destructive",
           title: "PDF uploaded but failed to split",
-          description: "You can still process the newspaper later.",
+          description: "Please try uploading again.",
         });
       } else {
         toast({
-          title: "Success!",
-          description: "Your newspaper has been uploaded and split into pages.",
+          title: "Processing started!",
+          description: "Your newspaper is being analyzed. Check the Newspapers page for progress.",
         });
       }
 

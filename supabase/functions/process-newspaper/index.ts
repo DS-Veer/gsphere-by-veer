@@ -187,19 +187,17 @@ serve(async (req) => {
 
     for (let i = 0; i < totalPages; i++) {
       const pageFileName = `${newspaper.user_id}/pages/${newspaperId}_page_${i + 1}.pdf`;
-      console.log(`→ Processing: ${pageFileName}`);
+      console.log(`→ Processing page ${i + 1}/${totalPages}: ${pageFileName}`);
 
-      const { data: pageData, error: downloadError } = await supabase.storage
+      // Get signed URL for the page (valid for 1 hour)
+      const { data: signedUrlData, error: urlError } = await supabase.storage
         .from("newspapers")
-        .download(pageFileName);
+        .createSignedUrl(pageFileName, 3600);
 
-      if (downloadError) {
-        console.warn(`⚠️ Skipping page ${i + 1}: not found`);
+      if (urlError || !signedUrlData?.signedUrl) {
+        console.warn(`⚠️ Skipping page ${i + 1}: couldn't generate signed URL`);
         continue;
       }
-
-      const pageBytes = await pageData.arrayBuffer();
-      const pageBase64 = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(pageBytes))));
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -208,29 +206,36 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-pro",
           messages: [
             {
               role: "system",
-              content: `You are an expert at analyzing newspaper PDFs for UPSC CSE preparation.`,
+              content: `You are an expert at analyzing newspaper PDFs for UPSC Civil Services Exam preparation. Extract ALL articles from the page that are relevant to UPSC syllabus. Be thorough and detailed.`,
             },
             {
               role: "user",
               content: [
                 {
                   type: "text",
-                  text: `Analyze page ${i + 1} of a newspaper and extract UPSC-relevant articles. 
-For each article, identify which GS papers (GS1, GS2, GS3, GS4) and relevant syllabus topics it covers.
-GS1 covers: History, Culture, Geography, Society
-GS2 covers: Polity, Governance, International Relations, Social Justice
-GS3 covers: Economy, Science & Tech, Environment, Security, Agriculture
-GS4 covers: Ethics, Integrity, Aptitude
+                  text: `Analyze page ${i + 1} of a newspaper and extract ALL UPSC-relevant articles.
 
-Return articles with: title, content, GS papers, topics, keywords, one-liner summary, key points, prelims card, static topics, and importance flag.`,
+For each article, identify:
+- Which GS papers it's relevant to (GS1, GS2, GS3, or GS4)
+- Specific syllabus topics from the UPSC syllabus
+- Key facts, data points, and analysis
+- Connection to current affairs and UPSC preparation
+
+GS PAPER COVERAGE:
+- GS1: History, Culture, Geography, Society, World History
+- GS2: Polity, Governance, Constitution, International Relations, Social Justice
+- GS3: Economy, Agriculture, Science & Tech, Environment, Security, Disaster Management
+- GS4: Ethics, Integrity, Aptitude, Case Studies
+
+Extract comprehensive information for each article including title, full content/summary, GS papers, specific topics, keywords, one-liner, key points for answer writing, prelims facts, static topics for revision, and importance rating.`,
                 },
                 {
                   type: "image_url",
-                  image_url: { url: `data:application/pdf;base64,${pageBase64}` },
+                  image_url: { url: signedUrlData.signedUrl },
                 },
               ],
             },
@@ -240,6 +245,7 @@ Return articles with: title, content, GS papers, topics, keywords, one-liner sum
               type: "function",
               function: {
                 name: "extract_articles",
+                description: "Extract all UPSC-relevant articles from the newspaper page",
                 parameters: {
                   type: "object",
                   properties: {
@@ -248,19 +254,35 @@ Return articles with: title, content, GS papers, topics, keywords, one-liner sum
                       items: {
                         type: "object",
                         properties: {
-                          title: { type: "string" },
-                          content: { type: "string" },
-                          gs_papers: { type: "array", items: { type: "string" } },
-                          gs_syllabus_topics: { type: "array", items: { type: "string" } },
-                          keywords: { type: "array", items: { type: "string" } },
-                          one_liner: { type: "string" },
-                          key_points: { type: "string" },
-                          prelims_card: { type: "string" },
-                          static_topics: { type: "array", items: { type: "string" } },
-                          static_explanation: { type: "string" },
-                          is_important: { type: "boolean" },
+                          title: { type: "string", description: "Article headline" },
+                          content: { type: "string", description: "Full article content or detailed summary" },
+                          gs_papers: { 
+                            type: "array", 
+                            items: { type: "string", enum: ["GS1", "GS2", "GS3", "GS4"] },
+                            description: "Which GS papers this article is relevant for"
+                          },
+                          gs_syllabus_topics: { 
+                            type: "array", 
+                            items: { type: "string" },
+                            description: "Specific UPSC syllabus topics covered"
+                          },
+                          keywords: { 
+                            type: "array", 
+                            items: { type: "string" },
+                            description: "Important keywords and terms"
+                          },
+                          one_liner: { type: "string", description: "One sentence summary" },
+                          key_points: { type: "string", description: "Bullet points for answer writing" },
+                          prelims_card: { type: "string", description: "Important facts for prelims MCQs" },
+                          static_topics: { 
+                            type: "array", 
+                            items: { type: "string" },
+                            description: "Static topics to revise related to this article"
+                          },
+                          static_explanation: { type: "string", description: "Brief explanation of static concepts" },
+                          is_important: { type: "boolean", description: "Is this article highly important for UPSC?" },
                         },
-                        required: ["title", "content"],
+                        required: ["title", "content", "gs_papers", "one_liner"],
                       },
                     },
                   },
@@ -274,46 +296,69 @@ Return articles with: title, content, GS papers, topics, keywords, one-liner sum
       });
 
       if (!aiResponse.ok) {
-        console.error(`AI failed on page ${i + 1}: ${aiResponse.status}`);
+        const errorText = await aiResponse.text();
+        console.error(`❌ AI failed on page ${i + 1}: ${aiResponse.status} - ${errorText}`);
         continue;
       }
 
       const aiData = await aiResponse.json();
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall) continue;
+      
+      if (!toolCall) {
+        console.warn(`⚠️ No tool call returned for page ${i + 1}`);
+        continue;
+      }
 
       let extracted;
       try {
         extracted = JSON.parse(toolCall.function.arguments);
-      } catch {
-        console.warn(`❌ Failed to parse AI JSON for page ${i + 1}`);
+      } catch (parseError) {
+        console.error(`❌ Failed to parse AI JSON for page ${i + 1}:`, parseError);
         continue;
       }
 
       const pageArticles = (extracted.articles || []).map((a: any) => ({
-        ...a,
+        title: a.title,
+        content: a.content,
+        summary: a.one_liner || a.content?.substring(0, 200),
+        gs_papers: a.gs_papers || [],
+        gs_syllabus_topics: a.gs_syllabus_topics || [],
+        keywords: a.keywords || [],
+        one_liner: a.one_liner,
+        key_points: a.key_points,
+        prelims_card: a.prelims_card,
+        static_topics: a.static_topics || [],
+        static_explanation: a.static_explanation,
+        is_important: a.is_important || false,
         page_number: i + 1,
         newspaper_id: newspaperId,
         page_file_path: pageFileName,
       }));
 
-      if (pageArticles.length) {
-        allArticles.push(...pageArticles);
-        console.log(`✅ Page ${i + 1}: ${pageArticles.length} articles extracted`);
+      if (pageArticles.length > 0) {
+        // Insert articles immediately for realtime updates
+        const { error: insertError } = await supabase.from("articles").insert(pageArticles);
+        if (insertError) {
+          console.error(`❌ Failed to insert articles for page ${i + 1}:`, insertError);
+        } else {
+          allArticles.push(...pageArticles);
+          console.log(`✅ Page ${i + 1}/${totalPages}: Extracted and saved ${pageArticles.length} articles`);
+        }
+      } else {
+        console.log(`ℹ️ Page ${i + 1}/${totalPages}: No UPSC-relevant articles found`);
       }
     }
 
-    if (allArticles.length) {
-      const { error: insertError } = await supabase.from("articles").insert(allArticles);
-      if (insertError) throw insertError;
-    }
-
     await supabase.from("newspapers").update({ status: "completed" }).eq("id", newspaperId);
+
+    console.log(`🎉 Processing complete: ${allArticles.length} total articles extracted from ${totalPages} pages`);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: `Processed ${totalPages} pages, extracted ${allArticles.length} articles.`,
+        totalPages,
+        totalArticles: allArticles.length,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

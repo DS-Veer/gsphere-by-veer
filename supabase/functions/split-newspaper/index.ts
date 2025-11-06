@@ -111,12 +111,28 @@ serve(async (req) => {
       throw updateError;
     }
 
-    console.log("All pages split and uploaded successfully");
+    console.log(`✅ All ${totalPages} pages split and uploaded successfully`);
+    console.log("🚀 Auto-starting AI processing...");
+
+    // Auto-trigger processing after splitting completes
+    try {
+      const processResponse = await supabase.functions.invoke("process-newspaper", {
+        body: { newspaperId },
+      });
+
+      if (processResponse.error) {
+        console.error("❌ Failed to auto-start processing:", processResponse.error);
+      } else {
+        console.log("✅ Processing started successfully");
+      }
+    } catch (processError) {
+      console.error("❌ Error triggering process-newspaper:", processError);
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Split ${totalPages} pages successfully`,
+        message: `Split ${totalPages} pages and started processing`,
         totalPages,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

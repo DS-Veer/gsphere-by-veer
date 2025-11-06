@@ -271,23 +271,13 @@ const NewspapersList = ({ userId }: NewspapersListProps) => {
                   <div className="w-full md:w-auto flex flex-col md:flex-row items-stretch md:items-center gap-2">
                     {newspaper.status === "uploaded" && (
                       <Button
-                        variant="accent"
+                        variant="secondary"
                         size="sm"
-                        onClick={() => handleProcess(newspaper)}
-                        disabled={processingId === newspaper.id}
+                        disabled
                         className="w-full md:w-auto"
                       >
-                        {processingId === newspaper.id ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                            Starting...
-                          </>
-                        ) : (
-                          <>
-                            <Brain className="h-4 w-4 mr-1" />
-                            Process
-                          </>
-                        )}
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Processing will start...
                       </Button>
                     )}
           
