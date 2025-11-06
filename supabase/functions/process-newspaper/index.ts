@@ -119,6 +119,8 @@ const ALL_TOPICS = [
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let newspaperId: string | undefined;
+  
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader)
@@ -127,7 +129,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    const { newspaperId } = await req.json();
+    const body = await req.json();
+    newspaperId = body.newspaperId;
     console.log("Processing newspaper:", newspaperId);
 
     // Auth client (user-level)
@@ -196,7 +199,7 @@ serve(async (req) => {
       }
 
       const pageBytes = await pageData.arrayBuffer();
-      const pageBase64 = btoa(String.fromCharCode(...new Uint8Array(pageBytes)));
+      const pageBase64 = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(pageBytes))));
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -216,7 +219,14 @@ serve(async (req) => {
               content: [
                 {
                   type: "text",
-                  text: `Analyze page ${i + 1} of a newspaper. Extract all UPSC-relevant articles using GS topics:\n${JSON.stringify(ALL_TOPICS, null, 2)}`,
+                  text: `Analyze page ${i + 1} of a newspaper and extract UPSC-relevant articles. 
+For each article, identify which GS papers (GS1, GS2, GS3, GS4) and relevant syllabus topics it covers.
+GS1 covers: History, Culture, Geography, Society
+GS2 covers: Polity, Governance, International Relations, Social Justice
+GS3 covers: Economy, Science & Tech, Environment, Security, Agriculture
+GS4 covers: Ethics, Integrity, Aptitude
+
+Return articles with: title, content, GS papers, topics, keywords, one-liner summary, key points, prelims card, static topics, and importance flag.`,
                 },
                 {
                   type: "image_url",
@@ -310,9 +320,8 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing newspaper:", error);
 
-    try {
-      const body = await req.clone().json();
-      if (body.newspaperId) {
+    if (newspaperId) {
+      try {
         const supabase = createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -323,10 +332,10 @@ serve(async (req) => {
             status: "failed",
             error_message: error instanceof Error ? error.message : String(error),
           })
-          .eq("id", body.newspaperId);
+          .eq("id", newspaperId);
+      } catch (e) {
+        console.error("Failed to update error status:", e);
       }
-    } catch (e) {
-      console.error("Failed to update error status:", e);
     }
 
     return new Response(
